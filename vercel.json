@@ -26,11 +26,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/((?!api|_next|_vercel|favicon.ico|.*\\..*).*)",
-      "destination": "/$1"
-    }
   ]
 }

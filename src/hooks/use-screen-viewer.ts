@@ -73,6 +73,9 @@ export function useScreenViewer() {
                 const msg = JSON.parse(e.data)
                 if (msg.type === 'cursor-sync') {
                    store.setRemoteCursorPos({ x: msg.x, y: msg.y })
+                } else if (msg.type === 'screen-meta') {
+                   console.log('[Viewer] Screen meta from DC:', msg)
+                   store.setRemoteDimensions({ width: msg.width, height: msg.height })
                 }
               } catch (err) {
                 console.error('Failed to parse data channel message', err)
@@ -115,6 +118,10 @@ export function useScreenViewer() {
       .on('broadcast', { event: 'host-stopped' }, () => {
         console.log('[Viewer] Host stopped sharing')
         leaveSession()
+      })
+      .on('broadcast', { event: 'screen-meta' }, ({ payload }) => {
+        console.log('[Viewer] Received screen metadata:', payload)
+        store.setRemoteDimensions(payload)
       })
       .subscribe((status) => {
         console.log('[Viewer] Channel status:', status)

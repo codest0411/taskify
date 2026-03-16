@@ -10,6 +10,7 @@ export type SignalMessage =
   | { event: 'control-revoke';  payload: {} }
   | { event: 'host-stopped';    payload: {} }
   | { event: 'cursor-sync';     payload: { x: number; y: number } }
+  | { event: 'screen-meta';     payload: { width: number; height: number } }
 
 export function broadcastSignal(channel: RealtimeChannel, message: SignalMessage) {
   return channel.send({

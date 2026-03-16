@@ -21,7 +21,7 @@ import {
 import { cn } from '@/lib/utils'
 
 export function ShareHUD() {
-  const { mode, sessionCode, viewer, controlState, isBeingControlled, connectionStats, isHudMinimized, setHudMinimized } = useScreenShareStore()
+  const { mode, sessionCode, viewer, controlState, isBeingControlled, connectionStats, isHudMinimized, setHudMinimized, remoteCursorPos } = useScreenShareStore()
   const { stopSharing, grantControl, revokeControl } = useScreenShare()
   
   const [position, setPosition] = useState({ top: 16, right: 16 })
@@ -89,6 +89,23 @@ export function ShareHUD() {
     <>
       {isBeingControlled && (
         <div className="fixed inset-0 z-[9998] border-4 border-red-500 pointer-events-none animate-pulse-border" />
+      )}
+
+      {isBeingControlled && remoteCursorPos && (
+        <div 
+          className="fixed pointer-events-none z-[10000] transition-[top,left] duration-75 ease-out"
+          style={{ 
+            left: `${remoteCursorPos.x}px`,
+            top: `${remoteCursorPos.y}px`
+          }}
+        >
+          <div className="relative">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5.65376 12.3673L19.4991 3.29813C20.697 2.51139 22.0673 4.10325 21.0967 5.14811L13.8441 12.9157C13.4144 13.3751 13.2505 14.0205 13.4124 14.6186L15.3995 21.9213C15.7725 23.2929 13.9216 23.9785 13.1973 22.7412L5.47466 9.51683C4.85691 8.45524 4.88566 7.15286 5.54841 6.11524L5.65376 12.3673Z" fill="#3B82F6" stroke="white" strokeWidth="2"/>
+            </svg>
+            <div className="absolute top-0 left-0 w-2 h-2 bg-blue-500 rounded-full animate-ping" />
+          </div>
+        </div>
       )}
       
       <div 

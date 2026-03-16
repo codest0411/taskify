@@ -70,9 +70,16 @@ export function useScreenShare() {
         const data = JSON.parse(event.data)
         if (data.type === 'cursor') {
           store.setRemoteCursorPos({ x: data.x, y: data.y })
+        } else if (data.type === 'screen-meta') {
+          // Meta info sync
+          console.log('[Host] Data channel sync:', data)
         } else {
-          const dims = getScreenDimensions(stream)
-          injectControlEvent(data, dims.width, dims.height)
+          // Only inject if being controlled and state is granted
+          const { controlState } = useScreenShareStore.getState()
+          if (controlState === 'granted') {
+            const dims = getScreenDimensions(stream)
+            injectControlEvent(data, dims.width, dims.height)
+          }
         }
       } catch (e) {
         console.error('Failed to parse data channel message', e)
@@ -106,6 +113,8 @@ export function useScreenShare() {
       
       // 2. Capture screen
       const stream = await startScreenCapture()
+      const dimensions = getScreenDimensions(stream)
+      
       store.setLocalStream(stream)
       store.setSessionCode(session_code)
       store.setMode('hosting')
@@ -133,11 +142,24 @@ export function useScreenShare() {
         .on('broadcast', { event: 'viewer-ready' }, ({ payload }) => {
           console.log('[Host] Viewer ready:', payload)
           store.setViewer(payload)
+          
+          // Send screen metadata immediately
+          const dims = getScreenDimensions(stream)
+          broadcastSignal(channel, { event: 'screen-meta', payload: dims })
+          
           createOffer(pc, stream)
         })
         .on('broadcast', { event: 'answer' }, async ({ payload }) => {
           console.log('[Host] Received answer from viewer')
           await pc.setRemoteDescription(new RTCSessionDescription(payload))
+          
+          // Also try sending metadata via data channel once it's likely open
+          setTimeout(() => {
+            const dc = useScreenShareStore.getState().dataChannel
+            if (dc && dc.readyState === 'open') {
+              dc.send(JSON.stringify({ type: 'screen-meta', ...getScreenDimensions(stream) }))
+            }
+          }, 1000)
         })
         .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
           try {

@@ -65,15 +65,20 @@ export function injectControlEvent(event: ControlEvent, screenWidth: number, scr
 
   const { x, y } = event as any
   
+  // Screen coords might be physical pixels, elementFromPoint needs CSS pixels
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1
+  const cssX = x / dpr
+  const cssY = y / dpr
+  
   // Find target element at that position
-  const target = document.elementFromPoint(x, y) ?? document.body
+  const target = document.elementFromPoint(cssX, cssY) ?? document.body
 
   if (['mousemove', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu'].includes(event.type)) {
     const mouseEvent = new MouseEvent(event.type, {
       bubbles: true,
       cancelable: true,
-      clientX: x,
-      clientY: y,
+      clientX: cssX,
+      clientY: cssY,
       button: (event as any).button ?? 0,
     })
     target.dispatchEvent(mouseEvent)
@@ -84,8 +89,8 @@ export function injectControlEvent(event: ControlEvent, screenWidth: number, scr
       bubbles: true,
       deltaX: (event as any).deltaX,
       deltaY: (event as any).deltaY,
-      clientX: x,
-      clientY: y,
+      clientX: cssX,
+      clientY: cssY,
     })
     target.dispatchEvent(wheelEvent)
   }

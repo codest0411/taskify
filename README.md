@@ -106,7 +106,7 @@ This project is optimized for **Vercel** deployment. A `vercel.json` config is i
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `NEXT_PUBLIC_APP_URL` → set to your Vercel deployment URL (e.g., `https://taskify-xyz.vercel.app`)
+   - `NEXT_PUBLIC_APP_URL` → set to `https://taskflow99.vercel.app`
 5. Click **Deploy**
 
 #### Option B — Deploy via CLI

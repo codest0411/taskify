@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { getBaseUrl } from '@/lib/utils'
 
 interface EmailPayload {
   to: string
@@ -18,11 +19,11 @@ interface EmailPayload {
 
 export async function sendEmailNotification(payload: EmailPayload) {
   const adminSupabase = createServiceClient()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const baseUrl = getBaseUrl()
   
-  let redirectUrl = `${appUrl}/dashboard`
+  let redirectUrl = `${baseUrl}/dashboard`
   if (payload.type === 'invitation' && payload.invite_code) {
-    redirectUrl = `${appUrl}/dashboard/onboarding?join=${payload.invite_code}`
+    redirectUrl = `${baseUrl}/dashboard/onboarding?join=${payload.invite_code}`
   }
 
   // Trigger Supabase Invite Email Template

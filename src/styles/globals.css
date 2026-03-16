@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 20% 8%;
+    --foreground: 210 20% 94%;
+    --card: 220 18% 11%;
+    --card-foreground: 210 20% 94%;
+    --popover: 220 18% 10%;
+    --popover-foreground: 210 20% 94%;
+    --primary: 258 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 210 15% 80%;
+    --muted: 220 15% 13%;
+    --muted-foreground: 215 15% 55%;
+    --accent: 258 70% 20%;
+    --accent-foreground: 258 90% 80%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 18%;
+    --input: 220 15% 14%;
+    --ring: 258 90% 66%;
+    --radius: 0.6rem;
+    --font-display: 'Syne', sans-serif;
+    --font-sans: 'DM Sans', sans-serif;
+  }
+
+  .light {
+    --background: 220 20% 97%;
+    --foreground: 222 25% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 25% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 25% 12%;
+    --primary: 258 85% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 93%;
+    --secondary-foreground: 222 20% 35%;
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 10% 50%;
+    --accent: 258 60% 93%;
+    --accent-foreground: 258 70% 40%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 15% 88%;
+    --input: 220 15% 90%;
+    --ring: 258 85% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/40;
+}
+
+/* Board column scroll */
+.board-column {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.board-column-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 4px 16px;
+}
+
+/* Task card drag overlay */
+.task-card-dragging {
+  @apply opacity-50 rotate-1 scale-105;
+}
+
+/* Priority indicator line */
+.priority-urgent { border-left: 3px solid hsl(0 72% 51%); }
+.priority-high { border-left: 3px solid hsl(24 95% 53%); }
+.priority-medium { border-left: 3px solid hsl(45 93% 47%); }
+.priority-low { border-left: 3px solid hsl(142 71% 45%); }
+
+/* Glass morphism card */
+.glass-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(12px);
+}
+
+.light .glass-card {
+  background: rgba(255,255,255,0.8);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(258 60% 80%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Skeleton pulse */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+.skeleton {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  @apply bg-muted rounded;
+}
+
+/* Activity timeline */
+.activity-line::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 28px;
+  bottom: -4px;
+  width: 1px;
+  @apply bg-border;
+}

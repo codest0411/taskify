@@ -9,7 +9,6 @@ export function ScreenShareOverlay() {
     <>
       <ShareHUD />
       <ViewerScreen />
-      <ControlRequestToast />
     </>
   )
 }

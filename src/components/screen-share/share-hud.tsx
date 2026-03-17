@@ -21,8 +21,8 @@ import {
 import { cn } from '@/lib/utils'
 
 export function ShareHUD() {
-  const { mode, sessionCode, viewer, controlState, controlRequester, isBeingControlled, connectionStats, isHudMinimized, setHudMinimized, remoteCursorPos } = useScreenShareStore()
-  const { stopSharing, grantControl, revokeControl } = useScreenShare()
+  const { mode, sessionCode, viewer, connectionStats, isHudMinimized, setHudMinimized, remoteDimensions } = useScreenShareStore()
+  const { stopSharing } = useScreenShare()
   
   const [position, setPosition] = useState({ top: 16, right: 16 })
   const isDragging = useRef(false)
@@ -87,26 +87,7 @@ export function ShareHUD() {
 
   return (
     <>
-      {isBeingControlled && (
-        <div className="fixed inset-0 z-[9998] border-4 border-red-500 pointer-events-none animate-pulse-border" />
-      )}
 
-      {isBeingControlled && remoteCursorPos && (
-        <div 
-          className="fixed pointer-events-none z-[10000] transition-[top,left] duration-75 ease-out"
-          style={{ 
-            left: `${remoteCursorPos.x}px`,
-            top: `${remoteCursorPos.y}px`
-          }}
-        >
-          <div className="relative">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5.65376 12.3673L19.4991 3.29813C20.697 2.51139 22.0673 4.10325 21.0967 5.14811L13.8441 12.9157C13.4144 13.3751 13.2505 14.0205 13.4124 14.6186L15.3995 21.9213C15.7725 23.2929 13.9216 23.9785 13.1973 22.7412L5.47466 9.51683C4.85691 8.45524 4.88566 7.15286 5.54841 6.11524L5.65376 12.3673Z" fill="#3B82F6" stroke="white" strokeWidth="2"/>
-            </svg>
-            <div className="absolute top-0 left-0 w-2 h-2 bg-blue-500 rounded-full animate-ping" />
-          </div>
-        </div>
-      )}
       
       <div 
         style={{ top: position.top, right: position.right }}
@@ -160,68 +141,18 @@ export function ShareHUD() {
               {viewer && <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />}
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                isBeingControlled ? "bg-red-500/20" : "bg-gray-800"
-              )}>
-                <Gamepad2 className={cn("w-4 h-4", isBeingControlled ? "text-red-400" : "text-gray-400")} />
-              </div>
-              <div className="flex-1">
-                <p className="text-[11px] text-gray-400">Remote Control</p>
-                <div className="flex items-center gap-2">
-                  <span className={cn(
-                    "text-[10px] font-bold uppercase",
-                    isBeingControlled ? "text-red-400" : "text-gray-500"
-                  )}>
-                    {isBeingControlled ? 'Active' : 'Disabled'}
-                  </span>
-                  {isBeingControlled && (
-                    <div className="flex gap-0.5">
-                      <div className="w-1 h-1 bg-red-400 rounded-full animate-bounce" />
-                      <div className="w-1 h-1 bg-red-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                      <div className="w-1 h-1 bg-red-400 rounded-full animate-bounce [animation-delay:0.4s]" />
-                    </div>
-                  )}
-                </div>
-              </div>
-              {isBeingControlled && (
-                <Button size="sm" variant="ghost" className="h-7 text-[10px] px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={revokeControl}>
-                  Revoke
-                </Button>
-              )}
-            </div>
           </div>
 
           <div className="h-px bg-white/5" />
 
           {/* Actions */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" variant="outline" className="h-8 text-[10px] bg-white/5 border-white/10 hover:bg-white/10 text-white gap-1.5">
-                <Pause className="w-3 h-3" /> Pause
-              </Button>
-              
-              {controlState === 'requested' ? (
-                <Button 
-                  size="sm" 
-                  className="h-8 text-[10px] bg-green-600 hover:bg-green-700 text-white gap-1.5 border-0" 
-                  onClick={grantControl}
-                >
-                  <Unlock className="w-3 h-3" /> Allow
-                </Button>
-              ) : (
-                <Button size="sm" variant="outline" className="h-8 text-[10px] bg-white/5 border-white/10 hover:bg-white/10 text-white gap-1.5" disabled>
-                  <Lock className="w-3 h-3" /> Control Off
-                </Button>
-              )}
-            </div>
-            
-            {controlState === 'requested' && controlRequester && (
-              <p className="text-[10px] text-center text-blue-400 font-medium">
-                {controlRequester.userName} is requesting control
-              </p>
-            )}
+          <div className="grid grid-cols-2 gap-2">
+            <Button size="sm" variant="outline" className="h-8 text-[10px] bg-white/5 border-white/10 hover:bg-white/10 text-white gap-1.5">
+              <Pause className="w-3 h-3" /> Pause
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 text-[10px] bg-white/5 border-white/10 hover:bg-white/10 text-white gap-1.5" disabled>
+              <Lock className="w-3 h-3" /> Control Off
+            </Button>
           </div>
 
           <Button 

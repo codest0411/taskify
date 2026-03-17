@@ -63,25 +63,6 @@ export function useScreenViewer() {
             store.setRemoteStream(event.streams[0])
           }
 
-          pc.ondatachannel = (event) => {
-            const dc = event.channel
-            store.setDataChannel(dc)
-            console.log('[Viewer] Got data channel:', dc.label)
-            
-            dc.onmessage = (e) => {
-              try {
-                const msg = JSON.parse(e.data)
-                if (msg.type === 'cursor-sync') {
-                   store.setRemoteCursorPos({ x: msg.x, y: msg.y })
-                } else if (msg.type === 'screen-meta') {
-                   console.log('[Viewer] Screen meta from DC:', msg)
-                   store.setRemoteDimensions({ width: msg.width, height: msg.height })
-                }
-              } catch (err) {
-                console.error('Failed to parse data channel message', err)
-              }
-            }
-          }
 
           pc.onconnectionstatechange = () => {
             console.log('[Viewer] Connection state:', pc.connectionState)
@@ -105,18 +86,6 @@ export function useScreenViewer() {
           } catch (err) {
             console.error('[Viewer] Error adding ICE candidate:', err)
           }
-        }
-      })
-      .on('broadcast', { event: 'control-grant' }, ({ payload }) => {
-        if (payload.targetUserId === user.id) {
-          console.log('[Viewer] Control granted to me!')
-          store.setHasControl(true)
-        }
-      })
-      .on('broadcast', { event: 'control-revoke' }, ({ payload }) => {
-        if (payload.targetUserId === user.id) {
-          console.log('[Viewer] Control revoked from me')
-          store.setHasControl(false)
         }
       })
       .on('broadcast', { event: 'host-stopped' }, () => {
@@ -155,27 +124,9 @@ export function useScreenViewer() {
       })
   }, [supabase, store, leaveSession])
 
-  const requestControl = useCallback(async () => {
-    const channel = useScreenShareStore.getState().signalingChannel
-    if (!channel) {
-      console.warn('[Viewer] No signaling channel for requestControl')
-      return
-    }
-    
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    console.log('[Viewer] Requesting control')
-    broadcastSignal(channel, {
-      event: 'control-request',
-      payload: { userId: user.id, userName: user.user_metadata?.full_name || user.email || 'Viewer' }
-    })
-    store.setControlState('requested')
-  }, [supabase, store])
 
   return {
     joinSession,
     leaveSession,
-    requestControl,
   }
 }

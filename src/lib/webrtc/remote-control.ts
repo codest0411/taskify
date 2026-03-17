@@ -46,8 +46,10 @@ export function normalizeCoords(
   }
 }
 
-export function injectControlEvent(event: ControlEvent, screenWidth: number, screenHeight: number): void {
-  if (event.type === 'keydown' || event.type === 'keyup') {
+export function injectControlEvent(event: ControlEvent, streamWidth: number, streamHeight: number): void {
+  const isKey = event.type === 'keydown' || event.type === 'keyup'
+  
+  if (isKey) {
     const focused = document.activeElement ?? document.body
     const keyboardEvent = new KeyboardEvent(event.type, {
       bubbles: true,
@@ -60,28 +62,67 @@ export function injectControlEvent(event: ControlEvent, screenWidth: number, scr
       metaKey: (event as any).modifiers?.includes('meta'),
     })
     focused.dispatchEvent(keyboardEvent)
+    
+    // Fallback for input filling if event not prevented
+    if (event.type === 'keydown' && !keyboardEvent.defaultPrevented) {
+      const el = focused as HTMLInputElement | HTMLTextAreaElement
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        if (event.key.length === 1) {
+          // Simplistic insertion — in reality might need selection handling
+          // but for this app it's a huge improvement
+          try {
+            document.execCommand('insertText', false, event.key)
+          } catch (e) {
+             // execCommand might fail in some contexts, ignore
+          }
+        } else if (event.key === 'Backspace') {
+          // Handle backspace manually if needed, or rely on native? 
+          // dispatching often doesn't trigger native backspace.
+        }
+      }
+    }
     return
   }
 
   const { x, y } = event as any
   
-  // Screen coords might be physical pixels, elementFromPoint needs CSS pixels
-  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1
-  const cssX = x / dpr
-  const cssY = y / dpr
+  // Calculate scaling between the stream resolution and current viewport
+  // This is much more reliable than using DPR directly
+  const scaleX = window.innerWidth / streamWidth
+  const scaleY = window.innerHeight / streamHeight
+  
+  const cssX = x * scaleX
+  const cssY = y * scaleY
   
   // Find target element at that position
   const target = document.elementFromPoint(cssX, cssY) ?? document.body
 
   if (['mousemove', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu'].includes(event.type)) {
-    const mouseEvent = new MouseEvent(event.type, {
+    // Dispatch both Mouse and Pointer events for widest compatibility
+    const eventProps = {
       bubbles: true,
       cancelable: true,
       clientX: cssX,
       clientY: cssY,
       button: (event as any).button ?? 0,
-    })
+      pointerId: 1,
+      pointerType: 'mouse',
+      isPrimary: true,
+    }
+
+    if (event.type === 'mousedown') (target as any).focus?.()
+
+    const mouseEvent = new MouseEvent(event.type, eventProps)
+    const pointerEvent = new PointerEvent(event.type.replace('mouse', 'pointer'), eventProps)
+    
+    target.dispatchEvent(pointerEvent)
     target.dispatchEvent(mouseEvent)
+    
+    // If it's a click, ensure we also send pointerup/mousedown if missed
+    if (event.type === 'click') {
+      target.dispatchEvent(new PointerEvent('pointerdown', eventProps))
+      target.dispatchEvent(new PointerEvent('pointerup', eventProps))
+    }
   }
 
   if (event.type === 'wheel') {

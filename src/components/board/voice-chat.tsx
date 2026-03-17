@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
-import { VolumeX } from 'lucide-react'
+import { VolumeX, Volume2 } from 'lucide-react'
 
 interface PeerSignal {
   senderId: string
@@ -12,6 +12,50 @@ interface PeerSignal {
   targetId: string
   targetSessionId: string
   signal: any
+}
+
+// React component to correctly handle the audio element lifecycle and mobile browser playback
+function AudioPlayer({ 
+  stream, 
+  peerId, 
+  onAutoplayBlocked 
+}: { 
+  stream: MediaStream
+  peerId: string
+  onAutoplayBlocked: () => void 
+}) {
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  useEffect(() => {
+    if (audioRef.current && stream) {
+      audioRef.current.srcObject = stream
+      
+      const tryPlay = async () => {
+        if (!audioRef.current) return
+        try {
+          await audioRef.current.play()
+          console.log(`[Voice] ▶️ Audio playing for peer ${peerId}`)
+        } catch (err) {
+          console.warn(`[Voice] ⚠️ Autoplay blocked for peer ${peerId}`, err)
+          onAutoplayBlocked()
+        }
+      }
+      
+      tryPlay()
+    }
+  }, [stream, peerId, onAutoplayBlocked])
+
+  // CRITICAL: NEVER use display:none (hidden) for audio elements. 
+  // Mobile browsers strictly block audio playing from "hidden" DOM subtrees.
+  return (
+    <audio 
+      ref={audioRef} 
+      autoPlay 
+      playsInline 
+      className="w-0 h-0 opacity-0 absolute pointer-events-none" 
+      aria-hidden="true" 
+    />
+  )
 }
 
 export function VoiceChat({ teamId }: { teamId: string }) {
@@ -22,8 +66,10 @@ export function VoiceChat({ teamId }: { teamId: string }) {
   const channelRef = useRef<any>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
   const peerConnections = useRef<Record<string, RTCPeerConnection>>({})
-  const audioElements = useRef<Record<string, HTMLAudioElement>>({})
-  const audioContainerRef = useRef<HTMLDivElement | null>(null)
+  
+  // Replace direct DOM mutation with React State for audio streams
+  const [activeAudioStreams, setActiveAudioStreams] = useState<Record<string, MediaStream>>({})
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -31,8 +77,10 @@ export function VoiceChat({ teamId }: { teamId: string }) {
   const isSubscribedRef = useRef(false)
   const isVoiceJoinedRef = useRef(false)
   const iceCandidateQueues = useRef<Record<string, RTCIceCandidateInit[]>>({})
+  
   const [autoplayBlocked, setAutoplayBlocked] = useState(false)
 
+  // Explicit sync of ref for stable callbacks
   useEffect(() => {
     isVoiceJoinedRef.current = isVoiceJoined
   }, [isVoiceJoined])
@@ -54,7 +102,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
           const presences = state[key] as any[]
           presences.forEach(p => {
             if (p.userId) { // Track EVERYONE, not just isVoice!
-              if (!users.includes(p.userId) && p.isVoice) users.push(p.userId) // Only show in UI if mic is on
+              if (!users.includes(p.userId) && p.isVoice) users.push(p.userId)
               const pSid = p.sessionId
               if (pSid && pSid !== sessionId.current) {
                 remoteSessions.push(pSid)
@@ -62,9 +110,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
             }
           })
         })
-
-        // We only use activeVoiceUsers for the UI "talking" indication implicitly elsewhere if needed
-        // but setTalkingUsers is the main one.
 
         // Connect to ALL remote sessions immediately (listen-only if we don't have mic)
         remoteSessions.forEach(pSid => {
@@ -98,6 +143,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
           prev.includes(userId) ? prev : [...prev, userId]
         )
 
+        // Clear existing timeout if any, then set a new one
         if ((window as any)[`vt_${userId}`]) clearTimeout((window as any)[`vt_${userId}`])
         ;(window as any)[`vt_${userId}`] = setTimeout(() => {
           useAppStore.getState().setTalkingUsers((prev: string[]) =>
@@ -167,6 +213,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
           })
         }
 
+        // Retry connection scans to ensure everyone is peered
         setTimeout(retryScan, 1000)
         setTimeout(retryScan, 3000)
       })
@@ -199,21 +246,17 @@ export function VoiceChat({ teamId }: { teamId: string }) {
   // Clean-up on unmount entirely
   useEffect(() => {
     return () => {
-      // Actually destroy everything on unmount
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(t => t.stop())
       }
       Object.values(peerConnections.current).forEach(pc => pc.close())
-      Object.values(audioElements.current).forEach(el => {
-        el.srcObject = null
-        el.remove()
-      })
     }
   }, [])
 
   // ── Mic stream ──
   async function startLocalStream() {
     try {
+      // Mobile Safari specific optimizations for capturing audio
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -229,7 +272,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     }
   }
 
-  // ── VAD ──
+  // ── Voice Activity Detection (VAD) ──
   function startVAD(stream: MediaStream) {
     if (!currentUser) return
     stopVAD()
@@ -279,14 +322,17 @@ export function VoiceChat({ teamId }: { teamId: string }) {
       }
     }, 100)
 
-    if (audioCtx.state === 'suspended') audioCtx.resume()
+    if (audioCtx.state === 'suspended') {
+      // iOS WebAudio start-up requirement
+      audioCtx.resume()
+    }
     vadRef.current = { audioCtx, intervalId }
   }
 
   function stopVAD() {
     if (vadRef.current) {
       clearInterval(vadRef.current.intervalId)
-      vadRef.current.audioCtx.close()
+      vadRef.current.audioCtx.close().catch(() => {})
       vadRef.current = null
     }
   }
@@ -297,11 +343,27 @@ export function VoiceChat({ teamId }: { teamId: string }) {
 
     iceCandidateQueues.current[peerId] = []
 
+    // Provide robust TURN servers for mobile carrier NAT traversal
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' } // Fallback STUN
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        { 
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        { 
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        { 
+          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
       ]
     })
 
@@ -365,39 +427,14 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     }
 
     pc.ontrack = (event) => {
-      console.log(`[Voice] 🔊 Got audio track from ${peerId}`, event.streams)
-      if (audioElements.current[peerId]) {
-        audioElements.current[peerId].srcObject = null
-        audioElements.current[peerId].remove()
-        delete audioElements.current[peerId]
+      console.log(`[Voice] 🔊 Got audio track from ${peerId}`)
+      if (event.streams && event.streams[0]) {
+        // Automatically inject the stream into React state to mount <audio> tag
+        setActiveAudioStreams(prev => ({
+          ...prev,
+          [peerId]: event.streams[0]
+        }))
       }
-
-      const audio = document.createElement('audio')
-      audio.autoplay = true
-      audio.setAttribute('playsinline', '')
-      audio.volume = 1.0
-      audio.id = `voice-audio-${peerId}`
-      audio.srcObject = event.streams[0]
-      document.body.appendChild(audio)
-      audioElements.current[peerId] = audio
-
-      const tryPlay = () => {
-        audio.play().then(() => {
-          console.log(`[Voice] ▶️ Audio playing for ${peerId}`)
-        }).catch((err) => {
-          console.warn(`[Voice] ⚠️ Autoplay blocked for ${peerId}, waiting for user interaction`, err)
-          setAutoplayBlocked(true)
-          const resume = () => {
-            audio.play().catch(() => {})
-            setAutoplayBlocked(false)
-            document.removeEventListener('click', resume)
-            document.removeEventListener('touchstart', resume)
-          }
-          document.addEventListener('click', resume, { once: true })
-          document.addEventListener('touchstart', resume, { once: true })
-        })
-      }
-      tryPlay()
     }
 
     if (localStreamRef.current) {
@@ -413,15 +450,18 @@ export function VoiceChat({ teamId }: { teamId: string }) {
   }
 
   function cleanupPeer(peerId: string) {
-    if (audioElements.current[peerId]) {
-      audioElements.current[peerId].srcObject = null
-      audioElements.current[peerId].remove()
-      delete audioElements.current[peerId]
-    }
     if (peerConnections.current[peerId]) {
       peerConnections.current[peerId].close()
       delete peerConnections.current[peerId]
     }
+    
+    // Remove stream from UI map to destroy <audio> tag cleanly
+    setActiveAudioStreams(prev => {
+      const next = { ...prev }
+      delete next[peerId]
+      return next
+    })
+    
     delete iceCandidateQueues.current[peerId]
   }
 
@@ -599,25 +639,40 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     }
   }
 
-  if (autoplayBlocked) {
-    return (
-      <div className="fixed bottom-4 right-4 z-[9999] animate-in slide-in-from-bottom-5">
-        <Button 
-          variant="destructive" 
-          onClick={() => {
-            Object.values(audioElements.current).forEach(audio => {
-              audio.play().catch(() => {})
-            })
-            setAutoplayBlocked(false)
-          }}
-          className="shadow-xl rounded-full px-6 flex items-center gap-2"
-        >
-          <VolumeX className="w-4 h-4" />
-          Tap to Unmute Voice
-        </Button>
-      </div>
-    )
+  // Unlock all audio manually when user clicks
+  function forceUnlockAudio() {
+    setAutoplayBlocked(false)
+    const audioTags = document.querySelectorAll('audio')
+    audioTags.forEach(a => {
+      if (a.id.startsWith('voice-audio-')) {
+        a.play().catch(() => {})
+      }
+    })
   }
 
-  return null
+  return (
+    <>
+      {Object.entries(activeAudioStreams).map(([peerId, stream]) => (
+        <AudioPlayer 
+          key={peerId} 
+          stream={stream} 
+          peerId={peerId}
+          onAutoplayBlocked={() => setAutoplayBlocked(true)}
+        />
+      ))}
+
+      {autoplayBlocked && (
+        <div className="fixed bottom-4 right-4 z-[9999] animate-in slide-in-from-bottom-5">
+          <Button 
+            variant="destructive" 
+            onClick={forceUnlockAudio}
+            className="shadow-xl rounded-full px-6 flex items-center gap-2"
+          >
+            <VolumeX className="w-5 h-5" />
+            <span className="font-bold">Tap to unmute Voice</span>
+          </Button>
+        </div>
+      )}
+    </>
+  )
 }

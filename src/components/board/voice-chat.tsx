@@ -190,7 +190,13 @@ export function VoiceChat({ teamId }: { teamId: string }) {
   // ── Mic stream ──
   async function startLocalStream() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      })
       localStreamRef.current = stream
       return stream
     } catch (err) {
@@ -207,7 +213,10 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     Object.values(peerConnections.current).forEach(pc => pc.close())
     peerConnections.current = {}
     iceCandidateQueues.current = {}
-    Object.values(audioElements.current).forEach(el => el.remove())
+    Object.values(audioElements.current).forEach(el => {
+      el.srcObject = null
+      el.remove()
+    })
     audioElements.current = {}
     setTalkingUsers([])
   }
@@ -327,24 +336,37 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     }
 
     pc.ontrack = (event) => {
-      console.log(`[Voice] 🔊 Got audio track from ${peerId}`)
-      if (!audioElements.current[peerId]) {
-        const audio = new Audio()
-        audio.autoplay = true
-        audio.volume = 1.0
-        audioElements.current[peerId] = audio
-        if (audioContainerRef.current) {
-          audioContainerRef.current.appendChild(audio)
-        }
+      console.log(`[Voice] 🔊 Got audio track from ${peerId}`, event.streams)
+      // Remove old audio element if exists
+      if (audioElements.current[peerId]) {
+        audioElements.current[peerId].srcObject = null
+        audioElements.current[peerId].remove()
+        delete audioElements.current[peerId]
       }
-      audioElements.current[peerId].srcObject = event.streams[0]
-      audioElements.current[peerId].play().catch(() => {
-        const resume = () => {
-          audioElements.current[peerId]?.play()
-          window.removeEventListener('click', resume)
-        }
-        window.addEventListener('click', resume)
-      })
+
+      const audio = document.createElement('audio')
+      audio.autoplay = true
+      audio.setAttribute('playsinline', '')
+      audio.volume = 1.0
+      audio.id = `voice-audio-${peerId}`
+      audio.srcObject = event.streams[0]
+      // Append to document.body — NOT to any hidden container
+      document.body.appendChild(audio)
+      audioElements.current[peerId] = audio
+
+      const tryPlay = () => {
+        audio.play().then(() => {
+          console.log(`[Voice] ▶️ Audio playing for ${peerId}`)
+        }).catch((err) => {
+          console.warn(`[Voice] ⚠️ Autoplay blocked for ${peerId}, waiting for click`, err)
+          const resume = () => {
+            audio.play()
+            document.removeEventListener('click', resume)
+          }
+          document.addEventListener('click', resume, { once: true })
+        })
+      }
+      tryPlay()
     }
 
     // Add local audio tracks OR receive-only transceiver
@@ -552,7 +574,5 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     }
   }
 
-  return (
-    <div ref={audioContainerRef} className="hidden pointer-events-none" aria-hidden="true" />
-  )
+  return null
 }

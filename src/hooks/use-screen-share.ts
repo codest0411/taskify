@@ -30,15 +30,12 @@ export function useScreenShare() {
     store.reset()
   }, [store])
 
-
-
   const createOffer = useCallback(async (pc: RTCPeerConnection, stream: MediaStream) => {
     const channel = useScreenShareStore.getState().signalingChannel
     if (!channel) return
 
     stream.getTracks().forEach(track => pc.addTrack(track, stream))
     
-
     const offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
     
@@ -106,7 +103,6 @@ export function useScreenShare() {
         .on('broadcast', { event: 'answer' }, async ({ payload }) => {
           console.log('[Host] Received answer from viewer')
           await pc.setRemoteDescription(new RTCSessionDescription(payload))
-          
         })
         .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
           try {

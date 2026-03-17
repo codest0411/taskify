@@ -123,7 +123,7 @@ export function SessionCodeModal({ mode: initialMode, teamId }: SessionCodeModal
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Share Your Screen</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Start a real-time session with remote control capabilities.
+                  Start a real-time session for pure visualization and team presentation.
                 </p>
               </div>
             </div>
@@ -141,11 +141,11 @@ export function SessionCodeModal({ mode: initialMode, teamId }: SessionCodeModal
                   </li>
                   <li className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
                     <div className="w-1 h-1 rounded-full bg-blue-500 mt-1.5" />
-                    Explicit permission required for remote control
+                    Ultra-low latency screen sharing
                   </li>
                   <li className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
                     <div className="w-1 h-1 rounded-full bg-blue-500 mt-1.5" />
-                    Instant access revocation at any time
+                    Secure and private presentation mode
                   </li>
                 </ul>
               </div>

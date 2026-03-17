@@ -209,7 +209,7 @@ export function TaskDrawer({ taskId, members, currentUser, onClose }: Props) {
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
 
       {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xl bg-card border-l border-border shadow-2xl flex flex-col animate-slide-in-right">
+      <div className="fixed inset-y-0 right-0 z-50 w-full sm:max-w-xl bg-card border-l border-border shadow-2xl flex flex-col animate-slide-in-right">
         {/* Header */}
         <div className="flex items-start gap-3 px-5 py-4 border-b border-border flex-shrink-0">
           <div className="flex-1 min-w-0">

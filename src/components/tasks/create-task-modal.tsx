@@ -77,8 +77,8 @@ export function CreateTaskModal({ teamId, members, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg glass-card rounded-2xl shadow-2xl animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full h-full sm:h-auto sm:max-w-lg glass-card sm:rounded-2xl shadow-2xl animate-fade-in flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-bold text-lg" style={{ fontFamily: 'var(--font-display)' }}>
@@ -89,7 +89,7 @@ export function CreateTaskModal({ teamId, members, onClose }: Props) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 flex-1 overflow-y-auto">
           {/* Title */}
           <div className="space-y-1.5">
             <Label>Title <span className="text-red-400">*</span></Label>

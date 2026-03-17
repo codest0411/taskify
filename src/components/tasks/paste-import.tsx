@@ -42,8 +42,8 @@ export function PasteImport({ teamId, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg glass-card rounded-2xl shadow-2xl animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full h-full sm:h-auto sm:max-w-lg glass-card sm:rounded-2xl shadow-2xl animate-fade-in flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <ClipboardPaste className="w-4 h-4 text-primary" />
@@ -56,7 +56,7 @@ export function PasteImport({ teamId, onClose }: Props) {
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 flex-1 overflow-y-auto">
           <div>
             <p className="text-sm text-muted-foreground mb-2">
               Paste a list of tasks, one per line. Each line becomes a separate task.

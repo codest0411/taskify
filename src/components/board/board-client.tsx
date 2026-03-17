@@ -202,7 +202,7 @@ export function BoardClient({ team, initialTasks, members, currentUser, userRole
       <DashboardStats tasks={tasks} members={members} />
 
       {/* Board */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden p-4">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden p-2 sm:p-4">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}

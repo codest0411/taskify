@@ -106,57 +106,61 @@ export function DashboardStats({ tasks, members }: Props) {
   ]
 
   return (
-    <div className="flex-shrink-0 px-4 py-2 border-b border-border">
-      <div className="flex gap-3 overflow-x-auto pb-1">
+    <div className="flex-shrink-0 px-4 py-2 border-b border-border bg-card/20 overflow-hidden">
+      <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
         {/* Stat cards */}
         {statCards.map(card => (
           <div
             key={card.label}
-            className="flex-shrink-0 flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-card/60 border border-border min-w-36"
+            className="flex-shrink-0 flex items-center gap-3 px-3 py-2 rounded-xl bg-card/60 border border-border min-w-[140px] sm:min-w-[160px]"
           >
             <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', card.bg)}>
               <card.icon className={cn('w-4 h-4', card.color)} />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className={cn('text-lg font-bold leading-none', card.color)}>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={cn('text-base sm:text-lg font-bold leading-none', card.color)}>
                   {card.value}{card.suffix}
                 </span>
                 {(card as any).badge}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">{card.label}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate">{card.label}</p>
             </div>
           </div>
         ))}
 
         {/* Member stats */}
-        {memberStats.slice(0, 4).map(m => (
-          <div
-            key={m.profile?.id}
-            className="flex-shrink-0 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-card/60 border border-border min-w-44"
-          >
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-              {m.profile?.avatar_url
-                ? <img src={m.profile.avatar_url} alt="" className="w-full h-full object-cover rounded-full" />
-                : getInitials(m.profile?.full_name || m.profile?.email)
-              }
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate">{m.profile?.full_name || m.profile?.email}</p>
-              <div className="flex items-center gap-1.5 mt-1">
-                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all"
-                    style={{ width: `${m.rate}%` }}
-                  />
+        <div className="flex gap-3">
+          {memberStats.slice(0, 4).map(m => (
+            <div
+              key={m.profile?.id}
+              className="flex-shrink-0 flex items-center gap-2.5 px-3 py-2 rounded-xl bg-card/60 border border-border min-w-[160px] sm:min-w-[180px]"
+            >
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/20 flex items-center justify-center text-[10px] sm:text-xs font-bold text-primary flex-shrink-0">
+                {m.profile?.avatar_url
+                  ? <img src={m.profile.avatar_url} alt="" className="w-full h-full object-cover rounded-full" />
+                  : getInitials(m.profile?.full_name || m.profile?.email)
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] sm:text-xs font-medium truncate leading-none mb-1">
+                  {m.profile?.full_name || m.profile?.email}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{ width: `${m.rate}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-muted-foreground flex-shrink-0">
+                    {m.completed}/{m.assigned}
+                  </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                  {m.completed}/{m.assigned}
-                </span>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   )

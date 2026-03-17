@@ -29,6 +29,7 @@ export function TaskCard({ task, members, onClick, isDragging, remoteDragTaskId 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    touchAction: 'none',
   }
 
   const assignees = task.assigned_to?.map(uid => {

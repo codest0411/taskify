@@ -3,7 +3,7 @@
 import { useEffect, useCallback } from 'react'
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent,
-  PointerSensor, useSensor, useSensors, closestCorners
+  MouseSensor, TouchSensor, useSensor, useSensors, closestCorners
 } from '@dnd-kit/core'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store'
@@ -49,7 +49,15 @@ export function BoardClient({ team, initialTasks, members, currentUser, userRole
   const supabase = createClient()
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 10 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 10,
+      },
+    })
   )
 
   // Remote Drag Sync

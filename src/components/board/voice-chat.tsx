@@ -28,7 +28,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
   const vadRef = useRef<{ audioCtx: AudioContext; intervalId: ReturnType<typeof setInterval> } | null>(null)
   const isSubscribedRef = useRef(false)
   const isVoiceJoinedRef = useRef(false)
-  // Queue ICE candidates that arrive before remote description is set
   const iceCandidateQueues = useRef<Record<string, RTCIceCandidateInit[]>>({})
 
   useEffect(() => {
@@ -51,8 +50,8 @@ export function VoiceChat({ teamId }: { teamId: string }) {
         Object.keys(state).forEach(key => {
           const presences = state[key] as any[]
           presences.forEach(p => {
-            if (p?.isVoice && p.userId) {
-              if (!users.includes(p.userId)) users.push(p.userId)
+            if (p.userId) { // Track EVERYONE, not just isVoice!
+              if (!users.includes(p.userId) && p.isVoice) users.push(p.userId) // Only show in UI if mic is on
               const pSid = p.sessionId
               if (pSid && pSid !== sessionId.current) {
                 remoteSessions.push(pSid)
@@ -61,22 +60,22 @@ export function VoiceChat({ teamId }: { teamId: string }) {
           })
         })
 
-        // If we are in voice, connect to ALL remote sessions
-        if (isVoiceJoinedRef.current) {
-          remoteSessions.forEach(pSid => {
-            if (!peerConnections.current[pSid]) {
-              // Always let the smaller sessionId initiate
-              if (sessionId.current < pSid) {
-                initiateCall(pSid)
-              }
+        // We only use activeVoiceUsers for the UI "talking" indication implicitly elsewhere if needed
+        // but setTalkingUsers is the main one.
+
+        // Connect to ALL remote sessions immediately (listen-only if we don't have mic)
+        remoteSessions.forEach(pSid => {
+          if (!peerConnections.current[pSid]) {
+            if (sessionId.current < pSid) {
+              initiateCall(pSid)
             }
-          })
-        }
+          }
+        })
       })
       .on('broadcast', { event: 'voice-signal' }, async ({ payload }: { payload: PeerSignal }) => {
         if (payload.senderSessionId === sessionId.current) return
         if (payload.targetSessionId !== sessionId.current) return
-        if (!isVoiceJoinedRef.current) return
+        // We universally accept incoming calls so we can hear them!
 
         const { senderSessionId, signal } = payload
 
@@ -125,14 +124,22 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     if (!currentUser) return
 
     if (isVoiceJoined) {
-      // 1. Get mic
       startLocalStream().then(stream => {
         if (stream) {
           startVAD(stream)
           startRecording(stream)
+          
+          // Add newly acquired tracks to all existing peer connections (triggers onnegotiationneeded)
+          Object.values(peerConnections.current).forEach(pc => {
+            stream.getTracks().forEach(track => {
+              const senders = pc.getSenders()
+              if (!senders.find(s => s.track === track)) {
+                pc.addTrack(track, stream)
+              }
+            })
+          })
         }
 
-        // 2. Track presence AFTER mic is ready
         if (channelRef.current && isSubscribedRef.current) {
           channelRef.current.track({
             isVoice: true,
@@ -141,41 +148,40 @@ export function VoiceChat({ teamId }: { teamId: string }) {
           })
         }
 
-        // 3. Retry scan after delays to catch missed syncs
         const retryScan = () => {
-          if (!channelRef.current || !isVoiceJoinedRef.current) return
+          if (!channelRef.current) return
           const state = channelRef.current.presenceState()
           Object.keys(state).forEach((key: string) => {
             const presences = state[key] as any[]
             presences.forEach((p: any) => {
-              if (p?.isVoice && p.sessionId && p.sessionId !== sessionId.current) {
+              if (p.sessionId && p.sessionId !== sessionId.current) {
                 const pSid = p.sessionId
-                if (!peerConnections.current[pSid]) {
-                  if (sessionId.current < pSid) {
-                    initiateCall(pSid)
-                  } else {
-                    // We have bigger ID — nudge a presence update so the other side re-discovers us
-                    channelRef.current?.track({
-                      isVoice: true,
-                      sessionId: sessionId.current,
-                      userId: currentUser.id
-                    })
-                  }
+                if (!peerConnections.current[pSid] && sessionId.current < pSid) {
+                  initiateCall(pSid)
                 }
               }
             })
           })
         }
 
-        // Retry at 1s, 3s, 6s to handle any timing issues
         setTimeout(retryScan, 1000)
         setTimeout(retryScan, 3000)
-        setTimeout(retryScan, 6000)
       })
     } else {
       stopVAD()
-      stopLocalStream()
       stopRecording()
+      
+      // Stop pushing local tracks to peers but DO NOT destroy the connections! We want to keep listening.
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.stop())
+        Object.values(peerConnections.current).forEach(pc => {
+          pc.getSenders().forEach(sender => {
+            if (sender.track) pc.removeTrack(sender)
+          })
+        })
+        localStreamRef.current = null
+      }
+      setTalkingUsers([])
 
       if (channelRef.current && isSubscribedRef.current) {
         channelRef.current.track({
@@ -186,6 +192,21 @@ export function VoiceChat({ teamId }: { teamId: string }) {
       }
     }
   }, [isVoiceJoined, currentUser])
+
+  // Clean-up on unmount entirely
+  useEffect(() => {
+    return () => {
+      // Actually destroy everything on unmount
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.stop())
+      }
+      Object.values(peerConnections.current).forEach(pc => pc.close())
+      Object.values(audioElements.current).forEach(el => {
+        el.srcObject = null
+        el.remove()
+      })
+    }
+  }, [])
 
   // ── Mic stream ──
   async function startLocalStream() {
@@ -203,22 +224,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
       console.warn('[Voice] Mic access denied, joining as listener')
       return null
     }
-  }
-
-  function stopLocalStream() {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(t => t.stop())
-      localStreamRef.current = null
-    }
-    Object.values(peerConnections.current).forEach(pc => pc.close())
-    peerConnections.current = {}
-    iceCandidateQueues.current = {}
-    Object.values(audioElements.current).forEach(el => {
-      el.srcObject = null
-      el.remove()
-    })
-    audioElements.current = {}
-    setTalkingUsers([])
   }
 
   // ── VAD ──
@@ -287,15 +292,40 @@ export function VoiceChat({ teamId }: { teamId: string }) {
   function createPeerConnection(peerId: string) {
     if (peerConnections.current[peerId]) return peerConnections.current[peerId]
 
-    // Initialize ICE candidate queue
     iceCandidateQueues.current[peerId] = []
 
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' } // Fallback STUN
       ]
     })
+
+    // Handle dynamic renegotiation (when mic is turned on/off)
+    pc.onnegotiationneeded = async () => {
+      // Don't negotiate if signaling state isn't stable, wait for it to stabilize
+      if (pc.signalingState !== 'stable') return
+      
+      console.log(`[Voice] 🔄 Renegotiating with ${peerId}`)
+      try {
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'voice-signal',
+          payload: {
+            senderId: currentUser?.id,
+            senderSessionId: sessionId.current,
+            targetId: 'ANY',
+            targetSessionId: peerId,
+            signal: { type: 'offer', sdp: offer.sdp }
+          }
+        })
+      } catch (e) {
+        console.error('[Voice] Renegotiation failed', e)
+      }
+    }
 
     pc.oniceconnectionstatechange = () => {
       console.log(`[Voice] ICE state for ${peerId}: ${pc.iceConnectionState}`)
@@ -304,14 +334,10 @@ export function VoiceChat({ teamId }: { teamId: string }) {
       }
       if (pc.iceConnectionState === 'failed') {
         console.log(`[Voice] ❌ Connection failed to ${peerId}, retrying...`)
-        // Clean up and retry
         cleanupPeer(peerId)
-        // If we should be the initiator, retry after a delay
         if (sessionId.current < peerId) {
           setTimeout(() => {
-            if (isVoiceJoinedRef.current && !peerConnections.current[peerId]) {
-              initiateCall(peerId)
-            }
+            if (!peerConnections.current[peerId]) initiateCall(peerId)
           }, 2000)
         }
       }
@@ -337,7 +363,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
 
     pc.ontrack = (event) => {
       console.log(`[Voice] 🔊 Got audio track from ${peerId}`, event.streams)
-      // Remove old audio element if exists
       if (audioElements.current[peerId]) {
         audioElements.current[peerId].srcObject = null
         audioElements.current[peerId].remove()
@@ -350,7 +375,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
       audio.volume = 1.0
       audio.id = `voice-audio-${peerId}`
       audio.srcObject = event.streams[0]
-      // Append to document.body — NOT to any hidden container
       document.body.appendChild(audio)
       audioElements.current[peerId] = audio
 
@@ -358,18 +382,19 @@ export function VoiceChat({ teamId }: { teamId: string }) {
         audio.play().then(() => {
           console.log(`[Voice] ▶️ Audio playing for ${peerId}`)
         }).catch((err) => {
-          console.warn(`[Voice] ⚠️ Autoplay blocked for ${peerId}, waiting for click`, err)
+          console.warn(`[Voice] ⚠️ Autoplay blocked for ${peerId}, waiting for user interaction`, err)
           const resume = () => {
             audio.play()
             document.removeEventListener('click', resume)
+            document.removeEventListener('touchstart', resume)
           }
           document.addEventListener('click', resume, { once: true })
+          document.addEventListener('touchstart', resume, { once: true })
         })
       }
       tryPlay()
     }
 
-    // Add local audio tracks OR receive-only transceiver
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => {
         pc.addTrack(track, localStreamRef.current!)
@@ -384,6 +409,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
 
   function cleanupPeer(peerId: string) {
     if (audioElements.current[peerId]) {
+      audioElements.current[peerId].srcObject = null
       audioElements.current[peerId].remove()
       delete audioElements.current[peerId]
     }
@@ -394,7 +420,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     delete iceCandidateQueues.current[peerId]
   }
 
-  // Flush queued ICE candidates after remote description is set
   async function flushIceCandidates(peerId: string) {
     const pc = peerConnections.current[peerId]
     const queue = iceCandidateQueues.current[peerId]
@@ -416,8 +441,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
 
     console.log(`[Voice] 📞 Initiating call to ${peerId}`)
     const pc = createPeerConnection(peerId)
-    if (pc.signalingState !== 'stable') return
-
+    
     try {
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
@@ -442,8 +466,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     if (!currentUser) return
     console.log(`[Voice] 📨 Got offer from ${senderId}`)
 
-    // If we already have a connection to this peer, clean it up first
-    if (peerConnections.current[senderId]) {
+    if (peerConnections.current[senderId] && peerConnections.current[senderId].signalingState !== 'stable') {
       cleanupPeer(senderId)
     }
 
@@ -451,7 +474,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
 
     try {
       await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }))
-      // Flush any ICE candidates that arrived before the remote description
       await flushIceCandidates(senderId)
 
       const answer = await pc.createAnswer()
@@ -482,7 +504,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     if (pc.signalingState === 'have-local-offer') {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }))
-        // Flush any ICE candidates that arrived before the remote description
         await flushIceCandidates(senderId)
       } catch (e) {
         console.error('[Voice] Failed to handle answer:', e)
@@ -494,7 +515,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     const pc = peerConnections.current[senderId]
     if (!pc) return
 
-    // If remote description is not set yet, QUEUE the candidate
     if (!pc.remoteDescription) {
       if (!iceCandidateQueues.current[senderId]) {
         iceCandidateQueues.current[senderId] = []

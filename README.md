@@ -1,39 +1,120 @@
-# TaskFlow — Team Task Manager
+<div align="center">
 
-<p align="center">
-  <strong>A production-grade collaborative Kanban task manager</strong><br/>
-  Built with Next.js 14, Supabase, and TypeScript
-</p>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,14,19&height=220&section=header&text=TaskFlow&fontSize=90&fontColor=ffffff&fontAlignY=38&desc=Production-grade%20Collaborative%20Kanban%20Task%20Manager&descSize=18&descAlignY=58&descColor=c4b5fd&animation=fadeIn" width="100%"/>
 
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#tech-stack">Tech Stack</a> •
-  <a href="#quick-setup">Quick Setup</a> •
-  <a href="#deployment">Deployment</a> •
-  <a href="#folder-structure">Folder Structure</a>
-</p>
+<br/>
 
----
+<img src="https://img.shields.io/badge/Next.js%2014-000000?style=for-the-badge&logo=nextdotjs&logoColor=white"/>
+<img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"/>
+<img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white"/>
+<img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white"/>
+<img src="https://img.shields.io/badge/Zustand-443E38?style=for-the-badge&logo=react&logoColor=white"/>
 
-## Tech Stack
+<br/><br/>
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js 14 (App Router) + TypeScript + Tailwind CSS |
-| **Backend** | Next.js API Routes |
-| **Database** | Supabase (PostgreSQL) with Row Level Security |
-| **Auth** | Supabase Auth (email/password) |
-| **Storage** | Supabase Storage (file uploads) |
-| **Email** | Supabase Edge Functions (your SMTP) |
-| **Real-time** | Supabase Realtime (live board sync) |
-| **State** | Zustand |
-| **Drag & Drop** | @dnd-kit/core |
+<img src="https://img.shields.io/badge/Vercel-Deployed-000000?style=flat-square&logo=vercel&logoColor=white"/>
+<img src="https://img.shields.io/badge/License-MIT-a78bfa?style=flat-square"/>
+<img src="https://img.shields.io/github/stars/codest0411/taskify?style=flat-square&color=7c3aed&label=Stars"/>
+<img src="https://img.shields.io/github/issues/codest0411/taskify?style=flat-square&color=f85149&label=Issues"/>
+<img src="https://img.shields.io/badge/PRs-Welcome-3fb950?style=flat-square"/>
+
+<br/><br/>
+
+**[🌐 Live Demo](https://taskflow99.vercel.app)** &nbsp;•&nbsp; **[📁 Repo](https://github.com/codest0411/taskify)** &nbsp;•&nbsp; **[🐛 Report Bug](https://github.com/codest0411/taskify/issues)** &nbsp;•&nbsp; **[✨ Request Feature](https://github.com/codest0411/taskify/issues)**
+
+</div>
 
 ---
 
-## Quick Setup
+<div align="center">
 
-### 1. Clone & Install
+## 🗂️ What is TaskFlow?
+
+</div>
+
+**TaskFlow** is a full-stack, real-time Kanban task manager for teams — built with **Next.js 14 App Router**, **Supabase**, and **TypeScript**. It supports drag-and-drop task management, live board sync across team members, role-based access, email notifications, file attachments, and a dashboard with per-member analytics — all deployable to Vercel in minutes.
+
+---
+
+<div align="center">
+
+## ✨ Features
+
+</div>
+
+<table>
+<thead>
+<tr>
+<th>🗂️ Kanban Board</th>
+<th>✍️ Task Creation</th>
+<th>📋 Task Drawer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4 columns: Pending → In Progress → Review → Completed. Drag & drop with real-time sync and a progress bar.</td>
+<td>3 ways: Full modal, <code>⌘K</code> quick-create, or paste a newline-separated list for bulk import.</td>
+<td>Edit inline, activity timeline, comments, file attachments with drag-drop upload and lightbox preview.</td>
+</tr>
+</tbody>
+</table>
+
+<table>
+<thead>
+<tr>
+<th>📊 Analytics</th>
+<th>👥 Teams</th>
+<th>📧 Notifications</th>
+<th>🌙 Dark Mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total tasks, weekly completions, overdue count, daily velocity, per-member bars.</td>
+<td>Invite codes, Owner → Admin → Member roles, team rename & member management.</td>
+<td>Assignment alerts, review-ready pings, custom reminders, daily overdue digests.</td>
+<td>Dark-first with toggle. Deep navy + violet accent system-wide.</td>
+</tr>
+</tbody>
+</table>
+
+---
+
+<div align="center">
+
+## 🛠️ Tech Stack
+
+</div>
+
+<div align="center">
+
+<img src="https://skillicons.dev/icons?i=nextjs,ts,tailwind,supabase,vercel,react,postgres&theme=dark&perline=7"/>
+
+</div>
+
+<br/>
+
+| Layer | Technology | Purpose |
+|:------|:-----------|:--------|
+| **Frontend** | Next.js 14 App Router + TypeScript | Pages, routing, SSR |
+| **Styling** | Tailwind CSS | Utility-first design system |
+| **Database** | Supabase PostgreSQL + RLS | Secure, scalable data layer |
+| **Auth** | Supabase Auth | Email/password sign-in |
+| **Realtime** | Supabase Realtime | Live board sync across members |
+| **Storage** | Supabase Storage | File & image uploads |
+| **Email** | Supabase Edge Functions | SMTP notifications & reminders |
+| **State** | Zustand | Lightweight global state |
+| **Drag & Drop** | @dnd-kit/core | Accessible drag interactions |
+
+---
+
+<div align="center">
+
+## ⚡ Quick Setup
+
+</div>
+
+### Step 1 — Clone & Install
 
 ```bash
 git clone https://github.com/codest0411/taskify.git
@@ -41,132 +122,131 @@ cd taskify
 npm install
 ```
 
-### 2. Environment Variables
-
-Copy the example env file and fill in your Supabase credentials:
+### Step 2 — Environment Variables
 
 ```bash
 cp .env.example .env.local
 ```
 
-Required variables:
+Fill in your credentials:
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous/public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) |
-| `NEXT_PUBLIC_APP_URL` | Your app URL (`http://localhost:3000` for dev) |
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-### 3. Set Up the Database
+### Step 3 — Database Migration
 
-1. Open your Supabase project dashboard
-2. Go to **SQL Editor**
-3. Copy and paste the contents of `supabase/migrations/001_schema.sql`
-4. Click **Run**
+> Open **Supabase Dashboard → SQL Editor**, paste `supabase/migrations/001_schema.sql`, click **Run**.
 
-This creates all tables, RLS policies, indexes, storage bucket, and realtime subscriptions.
+This creates all tables, RLS policies, indexes, storage buckets, and realtime subscriptions automatically.
 
-### 4. Run the App
+### Step 4 — Start Dev Server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open **[http://localhost:3000](http://localhost:3000)** and you're live. 🎉
 
 ---
 
-## Deployment
+<div align="center">
 
-### Vercel (Recommended)
+## 🚀 Deployment
 
-This project is optimized for **Vercel** deployment. A `vercel.json` config is included that handles:
+</div>
 
-- ✅ Framework detection (Next.js)
-- ✅ Client-side routing (no 404 on page refresh)
-- ✅ Security headers (XSS protection, content-type sniffing, clickjacking)
-- ✅ Region optimization
+<details>
+<summary><b>▲ Vercel via Git (Recommended)</b></summary>
 
-#### Option A — Deploy via Git (Recommended)
+<br/>
 
-1. Push your code to GitHub:
-   ```bash
-   git init
-   git add .
-   git commit -m "initial commit: TaskFlow team task manager"
-   git remote add origin https://github.com/codest0411/taskify.git
-   git branch -M main
-   git push -u origin main
-   ```
+```bash
+git init
+git add .
+git commit -m "initial commit: TaskFlow"
+git remote add origin https://github.com/codest0411/taskify.git
+git branch -M main
+git push -u origin main
+```
 
-2. Go to [vercel.com/new](https://vercel.com/new)
-3. Import your `taskify` repository
-4. Add environment variables in **Settings → Environment Variables**:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `NEXT_PUBLIC_APP_URL` → set to `https://taskflow99.vercel.app`
-5. Click **Deploy**
+1. Go to **[vercel.com/new](https://vercel.com/new)**
+2. Import your `taskify` repository
+3. Add environment variables under **Settings → Environment Variables**
+4. Set `NEXT_PUBLIC_APP_URL` → `https://taskflow99.vercel.app`
+5. Click **Deploy** ✅
 
-#### Option B — Deploy via CLI
+</details>
+
+<details>
+<summary><b>▲ Vercel via CLI</b></summary>
+
+<br/>
 
 ```bash
 npm install -g vercel
 vercel
 ```
 
-Follow the prompts and add environment variables when asked.
+</details>
 
-### Self-hosted
+<details>
+<summary><b>🖥️ Self-Hosted</b></summary>
+
+<br/>
 
 ```bash
 npm run build
 npm start
 ```
 
+</details>
+
 ---
 
-## Email Setup (Supabase Built-in SMTP)
+<div align="center">
 
-TaskFlow uses Supabase Edge Functions to send emails. You do **NOT** need Resend or external providers.
+## 📧 Email Setup
 
-### Option A — Supabase Dashboard SMTP (Recommended)
+</div>
 
-1. Go to Supabase Dashboard → **Authentication** → **SMTP Settings**
-2. Enable custom SMTP and enter your provider details:
-   - **Gmail**: smtp.gmail.com:587 (use App Password)
-   - **Outlook**: smtp.office365.com:587
-   - **Any SMTP provider**
-3. Emails will be sent automatically by the edge functions
+TaskFlow uses **Supabase Edge Functions** — no Resend or external provider needed.
 
-### Option B — Deploy Edge Functions
+<details>
+<summary><b>Option A — Supabase Dashboard SMTP (Recommended)</b></summary>
+
+<br/>
+
+1. Supabase Dashboard → **Authentication → SMTP Settings**
+2. Enable custom SMTP and enter your provider:
+
+| Provider | Host | Port |
+|:---------|:-----|:-----|
+| Gmail | `smtp.gmail.com` | `587` (App Password) |
+| Outlook | `smtp.office365.com` | `587` |
+| Any SMTP | your host | your port |
+
+</details>
+
+<details>
+<summary><b>Option B — Deploy Edge Functions</b></summary>
+
+<br/>
 
 ```bash
-# Install Supabase CLI
 npm install -g supabase
-
-# Login
 supabase login
-
-# Link your project
 supabase link --project-ref ouoarvjxugxegmjpmwyp
-
-# Deploy the send-email function
 supabase functions deploy send-email
-
-# Deploy the reminder cron function  
 supabase functions deploy email-reminders
-
-# Set environment variables for the function
 supabase secrets set APP_URL=https://your-domain.com
 ```
 
-### Setting Up the Reminder Cron Job
+**Enable the Reminder Cron Job:**
 
-In Supabase Dashboard → **Database** → **Extensions** → Enable **pg_cron**
-
-Then in SQL Editor:
 ```sql
 SELECT cron.schedule(
   'email-reminders',
@@ -180,143 +260,123 @@ SELECT cron.schedule(
 );
 ```
 
----
+> Enable `pg_cron` first: Supabase Dashboard → **Database → Extensions → pg_cron**
 
-## Features
-
-### ✅ Kanban Board
-- 4 columns: Pending → In Progress → Review → Completed
-- Drag & drop tasks between columns
-- Real-time sync across all team members
-- Progress bar showing completion percentage
-
-### ✅ Task Creation (3 Methods)
-- **Full Modal**: Title, description, priority, due date, reminder, assignees, tags
-- **Quick Create**: Press `⌘K` or click Quick → type title → Enter
-- **Paste Import**: Paste a list of tasks (one per line) → bulk create
-
-### ✅ Task Detail Drawer
-- Edit all fields inline
-- Activity timeline with timestamps
-- Comment thread
-- File attachments with image preview / lightbox
-- Upload via drag-and-drop or click
-
-### ✅ Dashboard Analytics
-- Total tasks, completed this week (with % change), overdue count, daily velocity
-- Per-member completion rate bars
-
-### ✅ Team Management
-- Create team → auto-generated invite code
-- Join via invite code
-- Role system: owner > admin > member
-- Settings page: rename team, manage members, regenerate invite code
-
-### ✅ Email Notifications
-- Task assigned to you
-- Task moved to Review
-- Reminder at custom time
-- Overdue alerts (daily)
-
-### ✅ Dark/Light Mode
-- Dark first, toggle in sidebar
+</details>
 
 ---
 
-## Folder Structure
+<div align="center">
+
+## ⌨️ Keyboard Shortcuts
+
+</div>
+
+<div align="center">
+
+| Shortcut | Action |
+|:--------:|:-------|
+| `⌘K` / `Ctrl+K` | Quick create task |
+| `Esc` | Close modals & drawers |
+| `Enter` | Submit quick create |
+
+</div>
+
+---
+
+<div align="center">
+
+## 🎨 Design System
+
+</div>
+
+<div align="center">
+
+| | Property | Value |
+|:-:|:---------|:------|
+| 🔤 | Heading Font | **Syne** — bold, geometric |
+| 🔤 | Body Font | **DM Sans** — clean, readable |
+| 🎨 | Theme | Deep navy dark mode + violet/purple primary |
+| 🃏 | Cards | Glass morphism + priority-colored left borders |
+| 🎬 | Animations | Fade-in modals · Slide-in drawer · Smooth drag overlay |
+
+</div>
+
+---
+
+<div align="center">
+
+## 📁 Folder Structure
+
+</div>
 
 ```
 src/
 ├── app/
 │   ├── api/
-│   │   ├── tasks/
-│   │   │   ├── route.ts              # POST /api/tasks
-│   │   │   └── [id]/
-│   │   │       ├── route.ts          # GET/PATCH/DELETE
-│   │   │       ├── attachments/      # POST file upload
-│   │   │       └── comments/         # POST comment
-│   │   ├── teams/
-│   │   │   ├── create/               # POST create team
-│   │   │   ├── join/                 # POST join via code
-│   │   │   ├── invite/               # POST regen code
-│   │   │   └── [teamId]/
-│   │   │       ├── route.ts          # PATCH team
-│   │   │       └── members/[memberId]/ # PATCH/DELETE
-│   │   └── reminders/
-│   │       └── send/                 # POST cron trigger
+│   │   ├── tasks/               # CRUD + attachments + comments
+│   │   ├── teams/               # Create, join, invite, manage
+│   │   └── reminders/           # Cron trigger endpoint
 │   ├── auth/
-│   │   ├── login/                    # Login page
-│   │   ├── signup/                   # Signup page
-│   │   └── callback/                 # OAuth callback
+│   │   ├── login/
+│   │   ├── signup/
+│   │   └── callback/
 │   └── dashboard/
-│       ├── layout.tsx                # Auth guard + sidebar
-│       ├── page.tsx                  # Redirects to first team
-│       ├── onboarding/               # Create or join team
-│       ├── board/[teamId]/           # Main Kanban board
-│       ├── team/[teamId]/            # Member list
-│       └── settings/[teamId]/        # Team settings
+│       ├── layout.tsx           # Auth guard + sidebar
+│       ├── onboarding/          # Create or join team
+│       ├── board/[teamId]/      # ← Main Kanban board
+│       ├── team/[teamId]/       # Member list
+│       └── settings/[teamId]/   # Team settings
+│
 ├── components/
-│   ├── board/
-│   │   ├── board-client.tsx          # Main interactive board
-│   │   ├── board-header.tsx          # Filters, progress, actions
-│   │   ├── board-column.tsx          # Droppable column
-│   │   ├── task-card.tsx             # Draggable task card
-│   │   └── team-settings-client.tsx
-│   ├── tasks/
-│   │   ├── task-drawer.tsx           # Full task detail drawer
-│   │   ├── create-task-modal.tsx     # Full creation form
-│   │   ├── quick-create.tsx          # ⌘K quick input
-│   │   ├── paste-import.tsx          # Bulk paste import
-│   │   └── dashboard-stats.tsx       # Stats row
-│   ├── layout/
-│   │   ├── app-shell.tsx             # Sidebar + layout
-│   │   ├── theme-provider.tsx        # Dark/light mode
-│   │   └── user-menu.tsx
-│   └── ui/                           # shadcn/ui primitives
+│   ├── board/                   # board-client, columns, task-cards
+│   ├── tasks/                   # drawer, modal, quick-create, paste-import
+│   ├── layout/                  # app-shell, theme-provider, user-menu
+│   └── ui/                      # shadcn/ui primitives
+│
 ├── hooks/
-│   └── use-toast.ts
 ├── lib/
-│   ├── supabase/
-│   │   ├── client.ts                 # Browser client
-│   │   ├── server.ts                 # Server client + service client
-│   │   └── middleware.ts             # Auth session refresh
-│   └── utils.ts                      # Helpers
-├── store/
-│   └── index.ts                      # Zustand global state
-├── types/
-│   └── index.ts                      # TypeScript interfaces
-└── styles/
-    └── globals.css                   # Tailwind + custom CSS
+│   ├── supabase/                # client, server, middleware
+│   └── utils.ts
+├── store/index.ts               # Zustand global state
+└── types/index.ts               # TypeScript interfaces
 
 supabase/
 ├── migrations/
-│   └── 001_schema.sql               # Full DB schema + RLS
+│   └── 001_schema.sql           # Full DB schema + RLS policies
 └── functions/
-    ├── send-email/index.ts           # Email sender function
-    └── email-reminders/index.ts     # Cron: check & send reminders
+    ├── send-email/index.ts
+    └── email-reminders/index.ts  # Cron: check & send reminders
 ```
 
 ---
 
-## Keyboard Shortcuts
+<div align="center">
 
-| Shortcut | Action |
-|----------|--------|
-| `⌘K` / `Ctrl+K` | Quick create task |
-| `Esc` | Close modals/drawers |
-| `Enter` | Submit quick create |
+## 🤝 Contributing
+
+</div>
+
+Contributions are welcome! Feel free to open an issue or submit a pull request.
+
+```bash
+# Fork the repo, then:
+git checkout -b feature/your-feature
+git commit -m "feat: add your feature"
+git push origin feature/your-feature
+# Open a Pull Request on GitHub
+```
 
 ---
 
-## Design
+<div align="center">
 
-- **Font**: Syne (headings) + DM Sans (body) — imported from Google Fonts
-- **Theme**: Deep navy dark mode with violet/purple primary accent
-- **Cards**: Glass morphism with priority-colored left borders
-- **Animations**: Fade-in modals, slide-in drawer, smooth drag overlay
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,14,19&height=120&section=footer&animation=fadeIn" width="100%"/>
 
----
+**MIT License** &nbsp;·&nbsp; Made with 💜 by **[codest0411](https://github.com/codest0411)**
 
-## License
+<br/>
 
-MIT © [codest0411](https://github.com/codest0411)
+⭐ **Star this repo if you found it useful!** ⭐
+
+</div>

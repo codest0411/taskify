@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { AppShell } from '@/components/layout/app-shell'
 import { ScreenShareOverlay } from '@/components/screen-share/screen-share-overlay'
+import { TalkingCircles } from '@/components/board/talking-circles'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -36,6 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <AppShell user={profile} teams={teams}>
       {children}
       <ScreenShareOverlay />
+      <TalkingCircles />
     </AppShell>
   )
 }

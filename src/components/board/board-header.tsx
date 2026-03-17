@@ -14,7 +14,6 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { InviteModal } from '../teams/invite-modal'
-import { VoiceChat } from './voice-chat'
 import { useScreenShareStore } from '@/store/screen-share-store'
 import { SessionCodeModal } from '../screen-share/session-code-modal'
 
@@ -73,6 +72,7 @@ export function BoardHeader({ team, members, progressPct, completedTasks, totalT
         <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar flex-shrink-0">
           <button
             onClick={copyInviteCode}
+            suppressHydrationWarning
             className="flex sm:hidden items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted text-xs text-muted-foreground font-mono flex-shrink-0"
           >
              {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
@@ -181,11 +181,12 @@ export function BoardHeader({ team, members, progressPct, completedTasks, totalT
         <select
           value={filterAssignee || ''}
           onChange={e => setFilterAssignee(e.target.value || null)}
+          suppressHydrationWarning
           className="h-8 px-2 text-sm bg-muted border border-border rounded-md text-foreground w-full sm:w-auto"
         >
-          <option value="">All members</option>
+          <option value="" suppressHydrationWarning>All members</option>
           {members.map((m: any) => (
-            <option key={m.user_id} value={m.user_id}>
+            <option key={m.user_id} value={m.user_id} suppressHydrationWarning>
               {m.profile?.full_name || m.profile?.email || 'Unknown'}
             </option>
           ))}
@@ -195,17 +196,19 @@ export function BoardHeader({ team, members, progressPct, completedTasks, totalT
         <select
           value={filterPriority || ''}
           onChange={e => setFilterPriority(e.target.value || null)}
+          suppressHydrationWarning
           className="h-8 px-2 text-sm bg-muted border border-border rounded-md text-foreground w-full sm:w-auto"
         >
-          <option value="">All priorities</option>
+          <option value="" suppressHydrationWarning>All priorities</option>
           {priorities.map(p => (
-            <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+            <option key={p} value={p} suppressHydrationWarning>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
           ))}
         </select>
 
         {hasFilters && (
           <button
             onClick={clearFilters}
+            suppressHydrationWarning
             className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 rounded-md hover:bg-muted transition-colors w-full sm:w-auto justify-center"
           >
             <X className="w-3 h-3" /> Clear
@@ -228,7 +231,6 @@ export function BoardHeader({ team, members, progressPct, completedTasks, totalT
           />
         </div>
       </div>
-      <VoiceChat teamId={team.id} />
       {/* Invite Modal */}
       {isInviteModalOpen && (
         <InviteModal 

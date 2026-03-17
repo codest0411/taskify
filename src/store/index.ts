@@ -45,6 +45,8 @@ interface AppState {
   // Voice state
   isVoiceJoined: boolean
   setVoiceJoined: (joined: boolean) => void
+  talkingUsers: string[]
+  setTalkingUsers: (usersOrFn: string[] | ((prev: string[]) => string[])) => void
 
   // Filters
   filterAssignee: string | null
@@ -119,6 +121,10 @@ export const useAppStore = create<AppState>((set) => ({
   setActivityFeedOpen: (open: boolean) => set({ isActivityFeedOpen: open }),
   isVoiceJoined: false,
   setVoiceJoined: (joined) => set({ isVoiceJoined: joined }),
+  talkingUsers: [],
+  setTalkingUsers: (usersOrFn: string[] | ((prev: string[]) => string[])) => set((s) => ({ 
+    talkingUsers: typeof usersOrFn === 'function' ? usersOrFn(s.talkingUsers) : usersOrFn 
+  })),
 
   filterAssignee: null,
   setFilterAssignee: (id) => set({ filterAssignee: id }),

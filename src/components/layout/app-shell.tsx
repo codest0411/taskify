@@ -14,6 +14,8 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RealtimeNotifications } from '../global/realtime-notifications'
+import { TalkingCircles } from '../board/talking-circles'
+import { VoiceChat } from '../board/voice-chat'
 
 interface AppShellProps {
   children: React.ReactNode
@@ -35,12 +37,31 @@ export function AppShell({ children, user, teams }: AppShellProps) {
 
   useEffect(() => {
     // Set current team from URL
-    const match = pathname.match(/\/board\/([^/]+)/)
+    const match = pathname.match(/\/(board|team|settings)\/([^/]+)/)
     if (match && teams) {
-      const found = teams.find((t: Team) => t.id === match[1])
+      const found = teams.find((t: Team) => t.id === match[2])
       if (found) setCurrentTeam(found)
     }
   }, [pathname, teams])
+
+  // Fetch members when team changes to populate profiles for TalkingCircles
+  useEffect(() => {
+    if (!currentTeam) return
+    
+    async function fetchMembers() {
+      const { data } = await supabase
+        .from('team_members')
+        .select('*, profile:profiles(*)')
+        .eq('team_id', currentTeam!.id)
+      
+      if (data) {
+        useAppStore.getState().setMembers(data)
+        const profiles = data.map((m: any) => m.profile).filter(Boolean)
+        useAppStore.getState().setProfiles(profiles)
+      }
+    }
+    fetchMembers()
+  }, [currentTeam?.id])
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -74,6 +95,7 @@ export function AppShell({ children, user, teams }: AppShellProps) {
   return (
     <div className="flex h-screen bg-background overflow-hidden relative">
       <RealtimeNotifications />
+      <TalkingCircles />
 
       {/* Mobile Backdrop */}
       {isSidebarOpen && (
@@ -209,6 +231,7 @@ export function AppShell({ children, user, teams }: AppShellProps) {
               <ThemeToggle />
               <button
                 onClick={handleLogout}
+                suppressHydrationWarning
                 className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="Sign out"
               >
@@ -225,6 +248,7 @@ export function AppShell({ children, user, teams }: AppShellProps) {
         <header className="h-14 lg:hidden flex-shrink-0 flex items-center justify-between px-4 border-b border-border bg-card/50">
           <button 
             onClick={() => setIsSidebarOpen(true)}
+            suppressHydrationWarning
             className="p-2 -ml-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <div className="w-5 h-4 flex flex-col justify-between">
@@ -250,6 +274,7 @@ export function AppShell({ children, user, teams }: AppShellProps) {
 
         {children}
       </main>
+      {currentTeam && <VoiceChat teamId={currentTeam.id} />}
     </div>
   )
 }

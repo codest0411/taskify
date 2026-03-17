@@ -6,6 +6,9 @@ import '@/styles/globals.css'
 export const metadata: Metadata = {
   title: 'TaskFlow — Team Task Manager',
   description: 'Collaborative kanban task management for high-performing teams',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
@@ -15,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

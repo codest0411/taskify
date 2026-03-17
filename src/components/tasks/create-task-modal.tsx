@@ -84,7 +84,7 @@ export function CreateTaskModal({ teamId, members, onClose }: Props) {
           <h2 className="font-bold text-lg" style={{ fontFamily: 'var(--font-display)' }}>
             New Task
           </h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={onClose} suppressHydrationWarning className="text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -109,6 +109,7 @@ export function CreateTaskModal({ teamId, members, onClose }: Props) {
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
+              suppressHydrationWarning
               placeholder="Add details, context, or acceptance criteria..."
               rows={3}
               className="w-full px-3 py-2 text-sm rounded-md border border-input bg-input text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-ring"
@@ -143,10 +144,11 @@ export function CreateTaskModal({ teamId, members, onClose }: Props) {
               <select
                 value={status}
                 onChange={e => setStatus(e.target.value as TaskStatus)}
+                suppressHydrationWarning
                 className="w-full h-8 px-2 text-sm bg-input border border-border rounded-md text-foreground"
               >
                 {statuses.map(s => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
+                  <option key={s.value} value={s.value} suppressHydrationWarning>{s.label}</option>
                 ))}
               </select>
             </div>

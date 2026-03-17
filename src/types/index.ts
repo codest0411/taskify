@@ -109,3 +109,13 @@ export interface MemberStats {
   completed: number
   rate: number
 }
+
+export interface VoiceRecording {
+  id: string
+  team_id: string
+  user_id: string
+  file_url: string
+  duration: number | null
+  created_at: string
+  profile?: Profile
+}

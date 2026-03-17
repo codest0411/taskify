@@ -82,6 +82,7 @@ export function ActivityFeed() {
           </div>
           <button
             onClick={() => setActivityFeedOpen(false)}
+            suppressHydrationWarning
             className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <X className="w-4 h-4" />
@@ -133,6 +134,7 @@ export function ActivityFeed() {
                           setTaskDrawerOpen(true)
                           setActivityFeedOpen(false)
                         }}
+                        suppressHydrationWarning
                         className="font-medium text-primary hover:underline underline-offset-2 text-left"
                       >
                         {a.task?.title || 'a task'}

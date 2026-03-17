@@ -47,16 +47,14 @@ export function ViewerScreen() {
     }
   }
 
-  const handleMouseEvent = (e: React.MouseEvent) => {
+  const handleMouseEvent = (e: any) => {
     if (!hasControl || !videoRef.current) return
     
-    // For mousemove, we might want to sync the virtual cursor even if not "in control" 
-    // but the prompt says "custom SVG cursor rendered... when isBeingControlled on host side"
-    // Usually, viewer sends events to host, host injects.
+    // Support both React events and synthetic events from touch/wheel
+    const nativeEvent = e.nativeEvent || e
+    const coords = normalizeCoords(nativeEvent, videoRef.current, remoteDimensions.width, remoteDimensions.height)
     
-    const coords = normalizeCoords(e.nativeEvent, videoRef.current, remoteDimensions.width, remoteDimensions.height)
-    
-    const typeMap: Record<string, any> = {
+    const typeMap: Record<string, string> = {
       mousemove: 'mousemove',
       mousedown: 'mousedown',
       mouseup: 'mouseup',
@@ -70,8 +68,8 @@ export function ViewerScreen() {
         type: typeMap[e.type],
         x: coords.x,
         y: coords.y,
-        button: e.button
-      } as ControlEvent)
+        button: e.button ?? 0
+      } as any)
     }
   }
 
@@ -211,6 +209,36 @@ export function ViewerScreen() {
           onDoubleClick={handleMouseEvent}
           onContextMenu={handleMouseEvent}
           onWheel={handleWheel}
+          onTouchStart={(e) => {
+            if (!hasControl || !videoRef.current) return
+            const touch = e.touches[0]
+            const rect = videoRef.current.getBoundingClientRect()
+            const fakeEvent = {
+              type: 'mousedown',
+              clientX: touch.clientX,
+              clientY: touch.clientY,
+              button: 0,
+              nativeEvent: { clientX: touch.clientX, clientY: touch.clientY } as any
+            } as any
+            handleMouseEvent(fakeEvent)
+          }}
+          onTouchMove={(e) => {
+            if (!hasControl || !videoRef.current) return
+            const touch = e.touches[0]
+            const fakeEvent = {
+              type: 'mousemove',
+              clientX: touch.clientX,
+              clientY: touch.clientY,
+              button: 0,
+              nativeEvent: { clientX: touch.clientX, clientY: touch.clientY } as any
+            } as any
+            handleMouseEvent(fakeEvent)
+          }}
+          onTouchEnd={() => {
+            if (!hasControl) return
+            const fakeEvent = { type: 'mouseup', button: 0 } as any
+            handleMouseEvent(fakeEvent)
+          }}
         >
           <video
             ref={videoRef}

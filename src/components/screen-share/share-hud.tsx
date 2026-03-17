@@ -21,7 +21,7 @@ import {
 import { cn } from '@/lib/utils'
 
 export function ShareHUD() {
-  const { mode, sessionCode, viewer, controlState, isBeingControlled, connectionStats, isHudMinimized, setHudMinimized, remoteCursorPos } = useScreenShareStore()
+  const { mode, sessionCode, viewer, controlState, controlRequester, isBeingControlled, connectionStats, isHudMinimized, setHudMinimized, remoteCursorPos } = useScreenShareStore()
   const { stopSharing, grantControl, revokeControl } = useScreenShare()
   
   const [position, setPosition] = useState({ top: 16, right: 16 })
@@ -196,18 +196,31 @@ export function ShareHUD() {
           <div className="h-px bg-white/5" />
 
           {/* Actions */}
-          <div className="grid grid-cols-2 gap-2">
-            <Button size="sm" variant="outline" className="h-8 text-[10px] bg-white/5 border-white/10 hover:bg-white/10 text-white gap-1.5">
-              <Pause className="w-3 h-3" /> Pause
-            </Button>
-            {controlState === 'requested' ? (
-              <Button size="sm" className="h-8 text-[10px] bg-green-600 hover:bg-green-700 text-white gap-1.5" onClick={grantControl}>
-                <Unlock className="w-3 h-3" /> Allow Control
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Button size="sm" variant="outline" className="h-8 text-[10px] bg-white/5 border-white/10 hover:bg-white/10 text-white gap-1.5">
+                <Pause className="w-3 h-3" /> Pause
               </Button>
-            ) : (
-              <Button size="sm" variant="outline" className="h-8 text-[10px] bg-white/5 border-white/10 hover:bg-white/10 text-white gap-1.5" disabled>
-                <Lock className="w-3 h-3" /> Control Off
-              </Button>
+              
+              {controlState === 'requested' ? (
+                <Button 
+                  size="sm" 
+                  className="h-8 text-[10px] bg-green-600 hover:bg-green-700 text-white gap-1.5 border-0" 
+                  onClick={grantControl}
+                >
+                  <Unlock className="w-3 h-3" /> Allow
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" className="h-8 text-[10px] bg-white/5 border-white/10 hover:bg-white/10 text-white gap-1.5" disabled>
+                  <Lock className="w-3 h-3" /> Control Off
+                </Button>
+              )}
+            </div>
+            
+            {controlState === 'requested' && controlRequester && (
+              <p className="text-[10px] text-center text-blue-400 font-medium">
+                {controlRequester.userName} is requesting control
+              </p>
             )}
           </div>
 

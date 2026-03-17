@@ -131,9 +131,24 @@ export function BoardHeader({ team, members, progressPct, completedTasks, totalT
               setIsCodeModalOpen(true)
             }}
             className="h-8 text-xs gap-1.5 flex-shrink-0"
+            title="Share your screen"
           >
             <Monitor className="w-3.5 h-3.5" />
             <span className="hidden lg:inline">Share</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setModalMode('viewer')
+              setIsCodeModalOpen(true)
+            }}
+            className="h-8 text-xs gap-1.5 flex-shrink-0 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/5"
+            title="View a screen share"
+          >
+            <MonitorDown className="w-3.5 h-3.5" />
+            <span className="hidden lg:inline">View</span>
           </Button>
 
           <Button

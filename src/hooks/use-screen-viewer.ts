@@ -107,13 +107,17 @@ export function useScreenViewer() {
           }
         }
       })
-      .on('broadcast', { event: 'control-grant' }, () => {
-        console.log('[Viewer] Control granted!')
-        store.setHasControl(true)
+      .on('broadcast', { event: 'control-grant' }, ({ payload }) => {
+        if (payload.targetUserId === user.id) {
+          console.log('[Viewer] Control granted to me!')
+          store.setHasControl(true)
+        }
       })
-      .on('broadcast', { event: 'control-revoke' }, () => {
-        console.log('[Viewer] Control revoked')
-        store.setHasControl(false)
+      .on('broadcast', { event: 'control-revoke' }, ({ payload }) => {
+        if (payload.targetUserId === user.id) {
+          console.log('[Viewer] Control revoked from me')
+          store.setHasControl(false)
+        }
       })
       .on('broadcast', { event: 'host-stopped' }, () => {
         console.log('[Viewer] Host stopped sharing')
@@ -126,11 +130,27 @@ export function useScreenViewer() {
       .subscribe((status) => {
         console.log('[Viewer] Channel status:', status)
         if (status === 'SUBSCRIBED') {
-          console.log('[Viewer] Sending viewer-ready signal')
-          broadcastSignal(channel, {
-            event: 'viewer-ready',
-            payload: { userId: user.id, userName: user.user_metadata?.full_name || user.email || 'Viewer' }
-          })
+          console.log('[Viewer] Sending initial viewer-ready signal')
+          const sendReady = () => {
+            if (pcRef.current) return // Already got offer/connected
+            broadcastSignal(channel, {
+              event: 'viewer-ready',
+              payload: { userId: user.id, userName: user.user_metadata?.full_name || user.email || 'Viewer' }
+            })
+          }
+          
+          sendReady()
+          // Retry every 5s if no offer received
+          const interval = setInterval(() => {
+            if (pcRef.current) {
+              clearInterval(interval)
+              return
+            }
+            console.log('[Viewer] Retrying viewer-ready...')
+            sendReady()
+          }, 5000)
+
+          return () => clearInterval(interval)
         }
       })
   }, [supabase, store, leaveSession])

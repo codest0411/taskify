@@ -33,21 +33,23 @@ export function useScreenShare() {
 
   const grantControl = useCallback(() => {
     const channel = useScreenShareStore.getState().signalingChannel
-    if (!channel) {
-      console.warn('[Host] No signaling channel for grantControl')
+    const requester = useScreenShareStore.getState().controlRequester
+    if (!channel || !requester) {
+      console.warn('[Host] No signaling channel or requester for grantControl')
       return
     }
-    console.log('[Host] Granting control')
-    broadcastSignal(channel, { event: 'control-grant', payload: {} })
+    console.log('[Host] Granting control to:', requester.userName)
+    broadcastSignal(channel, { event: 'control-grant', payload: { targetUserId: requester.userId } })
     store.setControlState('granted')
     store.setIsBeingControlled(true)
   }, [store])
 
   const revokeControl = useCallback(() => {
     const channel = useScreenShareStore.getState().signalingChannel
-    if (!channel) return
-    console.log('[Host] Revoking control')
-    broadcastSignal(channel, { event: 'control-revoke', payload: {} })
+    const requester = useScreenShareStore.getState().controlRequester
+    if (!channel || !requester) return
+    console.log('[Host] Revoking control from:', requester.userName)
+    broadcastSignal(channel, { event: 'control-revoke', payload: { targetUserId: requester.userId } })
     store.setControlState('none')
     store.setIsBeingControlled(false)
   }, [store])

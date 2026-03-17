@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store'
+import { Button } from '@/components/ui/button'
+import { VolumeX } from 'lucide-react'
 
 interface PeerSignal {
   senderId: string
@@ -29,6 +31,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
   const isSubscribedRef = useRef(false)
   const isVoiceJoinedRef = useRef(false)
   const iceCandidateQueues = useRef<Record<string, RTCIceCandidateInit[]>>({})
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false)
 
   useEffect(() => {
     isVoiceJoinedRef.current = isVoiceJoined
@@ -383,8 +386,10 @@ export function VoiceChat({ teamId }: { teamId: string }) {
           console.log(`[Voice] ▶️ Audio playing for ${peerId}`)
         }).catch((err) => {
           console.warn(`[Voice] ⚠️ Autoplay blocked for ${peerId}, waiting for user interaction`, err)
+          setAutoplayBlocked(true)
           const resume = () => {
-            audio.play()
+            audio.play().catch(() => {})
+            setAutoplayBlocked(false)
             document.removeEventListener('click', resume)
             document.removeEventListener('touchstart', resume)
           }
@@ -592,6 +597,26 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     } catch (err) {
       // Silent
     }
+  }
+
+  if (autoplayBlocked) {
+    return (
+      <div className="fixed bottom-4 right-4 z-[9999] animate-in slide-in-from-bottom-5">
+        <Button 
+          variant="destructive" 
+          onClick={() => {
+            Object.values(audioElements.current).forEach(audio => {
+              audio.play().catch(() => {})
+            })
+            setAutoplayBlocked(false)
+          }}
+          className="shadow-xl rounded-full px-6 flex items-center gap-2"
+        >
+          <VolumeX className="w-4 h-4" />
+          Tap to Unmute Voice
+        </Button>
+      </div>
+    )
   }
 
   return null

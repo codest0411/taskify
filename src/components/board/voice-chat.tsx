@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store'
 
@@ -16,7 +16,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
   const { isVoiceJoined, currentUser, setVoiceJoined, setTalkingUsers } = useAppStore()
   const supabase = createClient()
 
-  const [activeVoiceUsers, setActiveVoiceUsers] = useState<string[]>([])
   const sessionId = useRef(Math.random().toString(36).substring(7))
   const channelRef = useRef<any>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
@@ -26,16 +25,17 @@ export function VoiceChat({ teamId }: { teamId: string }) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const vadRef = useRef<{ audioCtx: AudioContext; animFrame: number } | null>(null)
+  const vadRef = useRef<{ audioCtx: AudioContext; intervalId: ReturnType<typeof setInterval> } | null>(null)
   const isSubscribedRef = useRef(false)
   const isVoiceJoinedRef = useRef(false)
+  // Queue ICE candidates that arrive before remote description is set
+  const iceCandidateQueues = useRef<Record<string, RTCIceCandidateInit[]>>({})
 
-  // Keep ref in sync so callbacks get latest value
   useEffect(() => {
     isVoiceJoinedRef.current = isVoiceJoined
   }, [isVoiceJoined])
 
-  // ── Channel Setup (STABLE — does NOT depend on isVoiceJoined) ──
+  // ── Channel Setup (STABLE) ──
   useEffect(() => {
     if (!currentUser || !teamId) return
 
@@ -54,19 +54,21 @@ export function VoiceChat({ teamId }: { teamId: string }) {
             if (p?.isVoice && p.userId) {
               if (!users.includes(p.userId)) users.push(p.userId)
               const pSid = p.sessionId
-              if (pSid !== sessionId.current) {
+              if (pSid && pSid !== sessionId.current) {
                 remoteSessions.push(pSid)
               }
             }
           })
         })
-        setActiveVoiceUsers(users)
 
-        // If we are in voice, connect to all remote sessions we don't have a peer for
+        // If we are in voice, connect to ALL remote sessions
         if (isVoiceJoinedRef.current) {
           remoteSessions.forEach(pSid => {
-            if (!peerConnections.current[pSid] && sessionId.current < pSid) {
-              initiateCall(pSid)
+            if (!peerConnections.current[pSid]) {
+              // Always let the smaller sessionId initiate
+              if (sessionId.current < pSid) {
+                initiateCall(pSid)
+              }
             }
           })
         }
@@ -74,6 +76,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
       .on('broadcast', { event: 'voice-signal' }, async ({ payload }: { payload: PeerSignal }) => {
         if (payload.senderSessionId === sessionId.current) return
         if (payload.targetSessionId !== sessionId.current) return
+        if (!isVoiceJoinedRef.current) return
 
         const { senderSessionId, signal } = payload
 
@@ -103,7 +106,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           isSubscribedRef.current = true
-          // Track initial presence (not in voice yet)
           await channel.track({
             isVoice: isVoiceJoinedRef.current,
             sessionId: sessionId.current,
@@ -116,57 +118,65 @@ export function VoiceChat({ teamId }: { teamId: string }) {
       isSubscribedRef.current = false
       supabase.removeChannel(channel)
     }
-  }, [teamId, currentUser?.id]) // Does NOT depend on isVoiceJoined!
+  }, [teamId, currentUser?.id])
 
-  // ── Join/Leave Voice (updates presence + starts mic) ──
+  // ── Join/Leave Voice ──
   useEffect(() => {
     if (!currentUser) return
 
     if (isVoiceJoined) {
-      // 1. Get mic first
+      // 1. Get mic
       startLocalStream().then(stream => {
         if (stream) {
           startVAD(stream)
           startRecording(stream)
         }
 
-        // 2. THEN update presence so others discover us WITH our mic ready
+        // 2. Track presence AFTER mic is ready
         if (channelRef.current && isSubscribedRef.current) {
           channelRef.current.track({
             isVoice: true,
             sessionId: sessionId.current,
             userId: currentUser.id
           })
+        }
 
-          // 3. After a short delay, check for existing users we need to connect to
-          // This handles the case where the other user was already present
-          setTimeout(() => {
-            if (!channelRef.current) return
-            const state = channelRef.current.presenceState()
-            Object.keys(state).forEach((key: string) => {
-              const presences = state[key] as any[]
-              presences.forEach((p: any) => {
-                if (p?.isVoice && p.sessionId !== sessionId.current) {
-                  const pSid = p.sessionId
-                  if (!peerConnections.current[pSid]) {
-                    if (sessionId.current < pSid) {
-                      initiateCall(pSid)
-                    }
-                    // If we have the bigger ID, the other side should call us.
-                    // Send a "nudge" presence update so they re-discover us
+        // 3. Retry scan after delays to catch missed syncs
+        const retryScan = () => {
+          if (!channelRef.current || !isVoiceJoinedRef.current) return
+          const state = channelRef.current.presenceState()
+          Object.keys(state).forEach((key: string) => {
+            const presences = state[key] as any[]
+            presences.forEach((p: any) => {
+              if (p?.isVoice && p.sessionId && p.sessionId !== sessionId.current) {
+                const pSid = p.sessionId
+                if (!peerConnections.current[pSid]) {
+                  if (sessionId.current < pSid) {
+                    initiateCall(pSid)
+                  } else {
+                    // We have bigger ID — nudge a presence update so the other side re-discovers us
+                    channelRef.current?.track({
+                      isVoice: true,
+                      sessionId: sessionId.current,
+                      userId: currentUser.id
+                    })
                   }
                 }
-              })
+              }
             })
-          }, 1000)
+          })
         }
+
+        // Retry at 1s, 3s, 6s to handle any timing issues
+        setTimeout(retryScan, 1000)
+        setTimeout(retryScan, 3000)
+        setTimeout(retryScan, 6000)
       })
     } else {
       stopVAD()
       stopLocalStream()
       stopRecording()
 
-      // Update presence to show we left
       if (channelRef.current && isSubscribedRef.current) {
         channelRef.current.track({
           isVoice: false,
@@ -184,6 +194,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
       localStreamRef.current = stream
       return stream
     } catch (err) {
+      console.warn('[Voice] Mic access denied, joining as listener')
       return null
     }
   }
@@ -195,12 +206,13 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     }
     Object.values(peerConnections.current).forEach(pc => pc.close())
     peerConnections.current = {}
+    iceCandidateQueues.current = {}
     Object.values(audioElements.current).forEach(el => el.remove())
     audioElements.current = {}
     setTalkingUsers([])
   }
 
-  // ── Voice Activity Detection ──
+  // ── VAD ──
   function startVAD(stream: MediaStream) {
     if (!currentUser) return
     stopVAD()
@@ -217,7 +229,6 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     let lastBroadcast = 0
     const userId = currentUser.id
 
-    // Check volume every 100ms instead of 60fps — much lighter
     const intervalId = setInterval(() => {
       analyser.getByteFrequencyData(dataArray)
       let sum = 0
@@ -229,32 +240,19 @@ export function VoiceChat({ teamId }: { teamId: string }) {
         silenceFrames = 0
         if (!isTalking) {
           isTalking = true
-          // Broadcast start-talking (throttled to max once per 500ms)
           if (now - lastBroadcast > 500 && channelRef.current && isSubscribedRef.current) {
             lastBroadcast = now
-            channelRef.current.send({
-              type: 'broadcast',
-              event: 'voice-talking',
-              payload: { userId }
-            })
+            channelRef.current.send({ type: 'broadcast', event: 'voice-talking', payload: { userId } })
           }
           useAppStore.getState().setTalkingUsers((prev: string[]) =>
             prev.includes(userId) ? prev : [...prev, userId]
           )
-        } else {
-          // Keep-alive broadcast every 1.5s while talking
-          if (now - lastBroadcast > 1500 && channelRef.current && isSubscribedRef.current) {
-            lastBroadcast = now
-            channelRef.current.send({
-              type: 'broadcast',
-              event: 'voice-talking',
-              payload: { userId }
-            })
-          }
+        } else if (now - lastBroadcast > 1500 && channelRef.current && isSubscribedRef.current) {
+          lastBroadcast = now
+          channelRef.current.send({ type: 'broadcast', event: 'voice-talking', payload: { userId } })
         }
       } else {
         silenceFrames++
-        // ~2.5 seconds of silence (25 * 100ms)
         if (silenceFrames > 25 && isTalking) {
           isTalking = false
           useAppStore.getState().setTalkingUsers((prev: string[]) =>
@@ -265,20 +263,23 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     }, 100)
 
     if (audioCtx.state === 'suspended') audioCtx.resume()
-    vadRef.current = { audioCtx, animFrame: intervalId as unknown as number }
+    vadRef.current = { audioCtx, intervalId }
   }
 
   function stopVAD() {
     if (vadRef.current) {
-      clearInterval(vadRef.current.animFrame as unknown as NodeJS.Timeout)
+      clearInterval(vadRef.current.intervalId)
       vadRef.current.audioCtx.close()
       vadRef.current = null
     }
   }
 
-  // ── WebRTC ──
+  // ── WebRTC Peer Connections ──
   function createPeerConnection(peerId: string) {
     if (peerConnections.current[peerId]) return peerConnections.current[peerId]
+
+    // Initialize ICE candidate queue
+    iceCandidateQueues.current[peerId] = []
 
     const pc = new RTCPeerConnection({
       iceServers: [
@@ -288,32 +289,45 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     })
 
     pc.oniceconnectionstatechange = () => {
-      if (['disconnected', 'failed', 'closed'].includes(pc.iceConnectionState)) {
-        if (audioElements.current[peerId]) {
-          audioElements.current[peerId].remove()
-          delete audioElements.current[peerId]
+      console.log(`[Voice] ICE state for ${peerId}: ${pc.iceConnectionState}`)
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        console.log(`[Voice] ✅ Connected to peer ${peerId}`)
+      }
+      if (pc.iceConnectionState === 'failed') {
+        console.log(`[Voice] ❌ Connection failed to ${peerId}, retrying...`)
+        // Clean up and retry
+        cleanupPeer(peerId)
+        // If we should be the initiator, retry after a delay
+        if (sessionId.current < peerId) {
+          setTimeout(() => {
+            if (isVoiceJoinedRef.current && !peerConnections.current[peerId]) {
+              initiateCall(peerId)
+            }
+          }, 2000)
         }
-        pc.close()
-        delete peerConnections.current[peerId]
+      }
+      if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'closed') {
+        cleanupPeer(peerId)
       }
     }
 
     pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        channelRef.current?.send({
+      if (event.candidate && channelRef.current) {
+        channelRef.current.send({
           type: 'broadcast',
           event: 'voice-signal',
           payload: {
             senderId: currentUser?.id,
             senderSessionId: sessionId.current,
             targetSessionId: peerId,
-            signal: { type: 'ice', candidate: event.candidate }
+            signal: { type: 'ice', candidate: event.candidate.toJSON() }
           }
         })
       }
     }
 
     pc.ontrack = (event) => {
+      console.log(`[Voice] 🔊 Got audio track from ${peerId}`)
       if (!audioElements.current[peerId]) {
         const audio = new Audio()
         audio.autoplay = true
@@ -333,7 +347,7 @@ export function VoiceChat({ teamId }: { teamId: string }) {
       })
     }
 
-    // Add local audio tracks if available, otherwise receive-only
+    // Add local audio tracks OR receive-only transceiver
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => {
         pc.addTrack(track, localStreamRef.current!)
@@ -346,10 +360,39 @@ export function VoiceChat({ teamId }: { teamId: string }) {
     return pc
   }
 
+  function cleanupPeer(peerId: string) {
+    if (audioElements.current[peerId]) {
+      audioElements.current[peerId].remove()
+      delete audioElements.current[peerId]
+    }
+    if (peerConnections.current[peerId]) {
+      peerConnections.current[peerId].close()
+      delete peerConnections.current[peerId]
+    }
+    delete iceCandidateQueues.current[peerId]
+  }
+
+  // Flush queued ICE candidates after remote description is set
+  async function flushIceCandidates(peerId: string) {
+    const pc = peerConnections.current[peerId]
+    const queue = iceCandidateQueues.current[peerId]
+    if (!pc || !queue) return
+
+    for (const candidate of queue) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate))
+      } catch (e) {
+        // ignore
+      }
+    }
+    iceCandidateQueues.current[peerId] = []
+  }
+
   async function initiateCall(peerId: string) {
     if (!currentUser) return
     if (sessionId.current > peerId) return
 
+    console.log(`[Voice] 📞 Initiating call to ${peerId}`)
     const pc = createPeerConnection(peerId)
     if (pc.signalingState !== 'stable') return
 
@@ -369,18 +412,26 @@ export function VoiceChat({ teamId }: { teamId: string }) {
         }
       })
     } catch (e) {
-      // Silent
+      console.error('[Voice] Failed to create offer:', e)
     }
   }
 
   async function handleOffer(senderId: string, sdp: string) {
     if (!currentUser) return
-    const pc = createPeerConnection(senderId)
+    console.log(`[Voice] 📨 Got offer from ${senderId}`)
 
-    if (pc.signalingState !== 'stable') return
+    // If we already have a connection to this peer, clean it up first
+    if (peerConnections.current[senderId]) {
+      cleanupPeer(senderId)
+    }
+
+    const pc = createPeerConnection(senderId)
 
     try {
       await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }))
+      // Flush any ICE candidates that arrived before the remote description
+      await flushIceCandidates(senderId)
+
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
 
@@ -395,30 +446,45 @@ export function VoiceChat({ teamId }: { teamId: string }) {
           signal: { type: 'answer', sdp: answer.sdp }
         }
       })
+      console.log(`[Voice] ✉️ Sent answer to ${senderId}`)
     } catch (e) {
-      // Silent
+      console.error('[Voice] Failed to handle offer:', e)
     }
   }
 
   async function handleAnswer(senderId: string, sdp: string) {
     const pc = peerConnections.current[senderId]
-    if (pc && pc.signalingState === 'have-local-offer') {
+    if (!pc) return
+    console.log(`[Voice] 📨 Got answer from ${senderId}`)
+
+    if (pc.signalingState === 'have-local-offer') {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }))
+        // Flush any ICE candidates that arrived before the remote description
+        await flushIceCandidates(senderId)
       } catch (e) {
-        // Silent
+        console.error('[Voice] Failed to handle answer:', e)
       }
     }
   }
 
   async function handleIceCandidate(senderId: string, candidate: RTCIceCandidateInit) {
     const pc = peerConnections.current[senderId]
-    if (pc && pc.remoteDescription) {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate))
-      } catch (e) {
-        // Silent
+    if (!pc) return
+
+    // If remote description is not set yet, QUEUE the candidate
+    if (!pc.remoteDescription) {
+      if (!iceCandidateQueues.current[senderId]) {
+        iceCandidateQueues.current[senderId] = []
       }
+      iceCandidateQueues.current[senderId].push(candidate)
+      return
+    }
+
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate))
+    } catch (e) {
+      // ignore
     }
   }
 
